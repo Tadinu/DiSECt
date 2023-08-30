@@ -44,7 +44,10 @@ class Visualizer:
                  show_ground_plane=True,
                  show_knife_mesh_normals=False,
                  show_mesh_wireframe=False,
-                 knife_force_history_limit=20.):
+                 knife_force_history_limit=20.,
+                 auto_start=True):
+        
+        self.is_playing = auto_start
 
         self.render_frequency = render_frequency
 
@@ -63,13 +66,17 @@ class Visualizer:
         action.triggered.connect(self.toggle_play)
         self.anim_menu.addAction(action)
 
+        action = Qt.QAction('Step', self.plotter.app_window)
+        action.setShortcut('s')
+        action.triggered.connect(self.step)
+        self.anim_menu.addAction(action)
+
         action = Qt.QAction('Stop', self.plotter.app_window)
         action.setShortcut('Backspace')
         action.triggered.connect(self.stop)
         self.anim_menu.addAction(action)
 
         self.anim_menu.addSeparator()
-        self.is_playing = True
         self.show_static_vertices = show_static_vertices
         self.show_dependent_particles = show_dependent_particles
 
@@ -475,13 +482,11 @@ class Visualizer:
         self.thread = Thread(target=simulate)
         self.thread.start()
 
-        # def step():
-        #     for _ in range(self.skip_steps + 1):
-        #         self.sim.state = self.sim.integrator.forward(self.sim.model, self.sim.state, self.sim.sim_dt)
-        #         self.sim.sim_time += self.sim.sim_dt
-        #         self.sim_step += 1
-        #     self.update_view()
-        # self.plotter.add_callback(step, interval=1)
+    def step(self):
+        for _ in range(self.skip_steps + 1):
+            self.sim.simulation_step()
+            self.sim_step += 1
+        self.update_view()
 
     def stop(self):
         self.is_playing = False
