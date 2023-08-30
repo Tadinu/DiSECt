@@ -45,11 +45,13 @@ class Visualizer:
                  scaling=500.,
                  show_ground_plane=True,
                  show_knife_mesh_normals=False,
+                 show_knife_motion_trace=False,
                  show_mesh_wireframe=False,
                  knife_force_history_limit=20.,
                  auto_start=True):
         
         self.is_playing = auto_start
+        self.show_knife_motion_trace = show_knife_motion_trace
 
         self.render_frequency = render_frequency
 
@@ -431,8 +433,8 @@ class Visualizer:
             self.surf.points = ps
             if hasattr(self.sim, "viz_scalars") and self.sim.viz_scalars is not None:
                 self.surf.point_arrays["scalars"] = self.sim.viz_scalars
-        rx = self.sim.state.body_X_sm[:,
-                                      :3].detach().cpu().numpy() * self.scaling
+        rx = self.sim.state.body_X_sm[:,:3].detach().cpu().numpy() * self.scaling
+        # Draw knife and trajectory
         for i in range(len(self.rigids)):
             body_id = self.sim.builder.shape_body[i]
             rot = df.quat_to_matrix(
@@ -440,10 +442,10 @@ class Visualizer:
             pos = rx[body_id]
             # self.rigids[i].points = self.geo_scale[i][:3] * (rot @ self.geo_src[i].T).T + pos
             self.rigids[i].points = (rot @ self.geo_src[i].T).T + pos
-            if self.last_rx is not None:
+            if self.show_knife_motion_trace and self.last_rx is not None:
                 # draw traces
                 self.plotter.add_lines(np.array(
-                    (self.last_rx[body_id], pos)), color=self.geo_colors[i % len(self.geo_colors)] if body_id != self.sim.model.knife_link_index else 'orange')
+                    (self.last_rx[body_id], pos)), color=self.geo_colors[i % len(self.geo_colors)] if body_id != self.sim.model.knife_link_index else 'blue')
             if self.knife_normals is not None and body_id == self.sim.model.knife_link_index:
                 # self.knife_normals.points = self.geo_scale[i][:3] * (rot @ self.knife_normals_src.T).T + pos
                 self.knife_normals.points = (
