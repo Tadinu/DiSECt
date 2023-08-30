@@ -30,3 +30,4 @@ events.out.tfevents.*
 log/
 dataset/
 *.zip
+osx_dataset/
