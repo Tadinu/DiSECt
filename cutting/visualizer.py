@@ -8,6 +8,7 @@
 # fmt: off
 import sys
 import torch
+import time
 import copy
 
 import os
@@ -22,6 +23,7 @@ import numpy as np
 import pyvista as pv
 from pyvistaqt import BackgroundPlotter
 
+import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 # fmt: on
 
@@ -38,7 +40,7 @@ class Visualizer:
                  show_dependent_particles=True,
                  show_cut_spring_sides=False,
                  show_cut_virtual_triangles=True,
-                 plot_knife_force_history=True,
+                 plot_knife_force_history=False,
                  skip_steps=1,
                  scaling=500.,
                  show_ground_plane=True,
@@ -74,6 +76,13 @@ class Visualizer:
         action = Qt.QAction('Stop', self.plotter.app_window)
         action.setShortcut('Backspace')
         action.triggered.connect(self.stop)
+        self.anim_menu.addAction(action)
+
+        # New button added to toggle the matplotlib window displaying the forces of the knife
+        self.plot_knife_force_history = plot_knife_force_history
+        action = Qt.QAction('Plot', self.plotter.app_window)
+        action.setShortcut('p')
+        action.triggered.connect(self.toggle_plot)
         self.anim_menu.addAction(action)
 
         # Connecting the close signal to a callback function
@@ -355,33 +364,45 @@ class Visualizer:
         self.plotter.set_position([0., .05, 0.2], True)
         print("Created visualizer")
 
-        if sim is not None and plot_knife_force_history:
-            import time
+        if sim is not None:
             max_steps = int(knife_force_history_limit / self.sim.sim_dt)
             # Plot knife force history
 
-            def plot_force():
-                import matplotlib.pyplot as plt
-                plt.ion()
-                fig, ax = plt.subplots()
-                fig.canvas.set_window_title('Knife Force [N]')
-                while True:
-                    hist_knife_force = np.copy(self.hist_knife_force)
-                    hist_time = np.copy(self.hist_time)
-                    # make sure both arrays have the same length
-                    if hist_time.shape[0] > hist_knife_force.shape[0]:
-                        hist_time = hist_time[:hist_knife_force.shape[0]]
-                    elif hist_time.shape[0] < hist_knife_force.shape[0]:
-                        hist_knife_force = hist_knife_force[:hist_time.shape[0]]
-                    if len(hist_knife_force) > max_steps:
-                        hist_knife_force = hist_knife_force[-max_steps:]
-                        hist_time = self.hist_time[-max_steps:]
-                    ax.clear()
-                    ax.grid()
-                    ax.plot(hist_time, hist_knife_force, color="C0")
-                    plt.pause(0.0001)
-                    time.sleep(0.2)
+            def on_close_force(event):
+                self.plot_knife_force_history = False
+                indexes_of_fig = plt.get_fignums()
+                if len(indexes_of_fig)>0:
+                    for i in indexes_of_fig:
+                        plt.close(i)
 
+            def plot_force():
+                plt.ion()
+                while True:
+                    if self.plot_knife_force_history:
+                        hist_knife_force = np.copy(self.hist_knife_force)
+                        hist_time = np.copy(self.hist_time)
+                        # make sure both arrays have the same length
+                        if hist_time.shape[0] > hist_knife_force.shape[0]:
+                            hist_time = hist_time[:hist_knife_force.shape[0]]
+                        elif hist_time.shape[0] < hist_knife_force.shape[0]:
+                            hist_knife_force = hist_knife_force[:hist_time.shape[0]]
+                        if len(hist_knife_force) > max_steps:
+                            hist_knife_force = hist_knife_force[-max_steps:]
+                            hist_time = self.hist_time[-max_steps:]
+                        if not plt.fignum_exists(1): # If the figure is closed, we open it again
+                            fig, ax = plt.subplots()
+                            fig.canvas.mpl_connect('close_event', on_close_force)
+                            fig.canvas.set_window_title('Knife Force [N]')  
+                        ax.clear()
+                        ax.grid()
+                        ax.plot(hist_time, hist_knife_force, color="C0")
+                        plt.pause(0.0001)
+                    else: # We close the figure if the option is toggled at false
+                        indexes_of_fig = plt.get_fignums()
+                        if len(indexes_of_fig)>0:
+                            for i in indexes_of_fig:
+                                plt.close(i)
+                    time.sleep(1./self.render_frequency)
             self.plot_thread = Thread(target=plot_force)
             self.plot_thread.start()
 
@@ -392,6 +413,11 @@ class Visualizer:
             return
         if self.is_playing:
             self.start()
+
+    # Callback funtion called when pressing the plot knife force button (p)
+    def toggle_plot(self):
+        self.plot_knife_force_history = not self.plot_knife_force_history
+        print("Plotting knife force history?", self.plot_knife_force_history)
 
     # Callback function called to terminate all threads when closing the pyvista window
     def close(self):
@@ -500,9 +526,10 @@ class Visualizer:
         self.is_playing = False
         self.sim.model = copy.copy(self.start_model)
         self.sim.state = self.sim.model.state()
-        # self.sim.state = copy.copy(self.start_state)
         self.sim.sim_time = 0.0
         self.sim_step = 0
+        self.hist_knife_force = []
+        self.hist_time = []
         self.update_view()
 
     @staticmethod
