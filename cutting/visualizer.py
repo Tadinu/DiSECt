@@ -76,6 +76,9 @@ class Visualizer:
         action.triggered.connect(self.stop)
         self.anim_menu.addAction(action)
 
+        # Connecting the close signal to a callback function
+        self.plotter.app_window.signal_close.connect(self.close)
+
         self.anim_menu.addSeparator()
         self.show_static_vertices = show_static_vertices
         self.show_dependent_particles = show_dependent_particles
@@ -389,6 +392,11 @@ class Visualizer:
             return
         if self.is_playing:
             self.start()
+
+    # Callback function called to terminate all threads when closing the pyvista window
+    def close(self):
+        print("Closing.")
+        os._exit(0)
 
     def update_view(self):
         import dflex as df
