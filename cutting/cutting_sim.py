@@ -96,6 +96,8 @@ class CuttingSim:
             self.knife = Knife(KnifeType.EDC)
         elif self.settings.knife_type.lower() == "slicing":
             self.knife = Knife(KnifeType.SLICING)
+        elif self.settings.knife_type.lower() == "gazebo":
+            self.knife = Knife(KnifeType.GAZEBO)
         else:
             raise TypeError(
                 f"Unknown knife type \"{self.settings.knife_type}\" provided in settings")

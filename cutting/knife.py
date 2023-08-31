@@ -12,6 +12,7 @@ class KnifeType(Enum):
     YBJ = 1  # used in YBJ's work, our RSS paper
     EDC = 2  # small foldable EDC knife
     SLICING = 3  # large Victorinox 10" slicing knife
+    GAZEBO = 4 # Knife used in Gazebo env
 
 
 class Knife:
@@ -35,6 +36,12 @@ class Knife:
             self.edge_dim = 0.08e-3
             self.tip_height = 0.04e-3
             self.depth = 254e-3
+        if type == KnifeType.GAZEBO:
+            self.spine_dim = 3.5e-3
+            self.spine_height = 59e-3
+            self.edge_dim = 0.08e-3
+            self.tip_height = 0.04e-3
+            self.depth = 150e-3
 
     def create_mesh(self):
         import numpy as np
