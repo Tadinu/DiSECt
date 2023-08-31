@@ -20,6 +20,7 @@ reduce in further updates of our simulator.
 
 # fmt: off
 import torch
+torch.autograd.set_detect_anomaly(True)
 import tqdm
 import sys
 import os
@@ -57,7 +58,7 @@ logger = SummaryWriter(logdir=f"log/{experiment_name}")
 
 requires_grad = True
 
-sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=True,
+sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=requires_grad,
                  parameters=parameters)
 sim.motion = ConstantLinearVelocityMotion(
     initial_pos=torch.tensor([0.0, settings.initial_y, 0.0], device=device),
@@ -66,8 +67,9 @@ sim.motion = ConstantLinearVelocityMotion(
 sim.cut()
 
 # sim.visualize()
+optimized_parameters = torch.load(f'log/optuna_param_inference_dt1e-05_20230831-0513/best_optuna_optimized_tensors.pt')
 
-opt_params = sim.init_parameters()
+opt_params = sim.init_parameters(optimized_parameters)
 
 # sim.load_groundtruth('dataset/forces/sphere_fine_resultant_force_xyz.csv')
 sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=0.002)
@@ -84,7 +86,7 @@ for iteration in tqdm.trange(100):
 
     hist_knife_force = sim.simulate()
 
-    print("save tensors", sim.save_optimized_parameters(f"log/{experiment_name}/optimized_tensors_{iteration}.pt"))
+    sim.save_optimized_parameters(f"log/{experiment_name}/adam_optimized_tensors_{iteration}.pt")
 
     loss = torch.square(hist_knife_force -
                         sim.groundtruth_torch[:len(hist_knife_force)]).mean()
