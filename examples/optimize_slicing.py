@@ -30,8 +30,8 @@ from tensorboardX import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from cutting import load_settings, SlicingMotion
-from cutting import CuttingSim
+from disect.cutting import load_settings, SlicingMotion
+from disect.cutting import CuttingSim
 
 import mdmm
 # fmt: on

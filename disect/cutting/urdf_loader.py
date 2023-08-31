@@ -9,7 +9,7 @@ import urdfpy
 import math
 import numpy as np
 
-import dflex as df
+import disect.dflex as df
 
 
 def urdf_add_collision_(builder, link, collisions, shape_ke, shape_kd, shape_kf, shape_mu):

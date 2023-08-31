@@ -40,8 +40,8 @@ Note:
 
 from pxr import Usd, UsdGeom, Gf, Sdf
 
-import dflex.sim
-import dflex.util
+import disect.dflex.sim
+import disect.dflex.util
 
 import numpy as np
 import math

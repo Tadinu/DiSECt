@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import torch
 
-from cutting import load_settings, ConstantLinearVelocityMotion, CuttingSim
+from disect.cutting import load_settings, ConstantLinearVelocityMotion, CuttingSim
 # fmt: on
 
 settings = load_settings("examples/config/ansys_cylinder_jello.json")

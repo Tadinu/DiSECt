@@ -514,7 +514,7 @@ class ModelBuilder:
 
     Example:
 
-        >>> import dflex as df
+        >>> import disect.dflex as df
         >>>
         >>> builder = df.ModelBuilder()
         >>>
@@ -2068,7 +2068,7 @@ class ModelBuilder:
                     use_cpp=True):
 
         self.original_tri_indices = self.tri_indices
-        import dflex as df
+        import disect.dflex as df
 
         if use_cpp:
             from meshcutter import MeshCutter
@@ -2175,7 +2175,7 @@ class ModelBuilder:
         print(f'{len(self.cut_spring_indices)} cut springs have been inserted.')
 
     # returns a (model, state) pair given the description
-    def finalize(self, adapter: str, knife = None, minimum_mass=0.0, requires_grad=True) -> Model:
+    def finalize(self, adapter: str, knife = None, minimum_mass=0.0, requires_grad=True, verbose=True) -> Model:
         """Convert this builder object to a concrete model for simulation.
 
         After building simulation elements this method should be called to transfer
@@ -2466,9 +2466,10 @@ class ModelBuilder:
         m.cut_edge_contact_dist = torch.tensor(np.ones(len(self.cut_edge_indices)), dtype=torch.float32, device=adapter, requires_grad=requires_grad)
         m.cut_edge_contact_normal = torch.tensor(np.zeros((len(self.cut_edge_indices), 3)), dtype=torch.float32, device=adapter, requires_grad=requires_grad)
 
-        print("self.cut_edge_indices:", np.shape(self.cut_edge_indices))
-        print("self.cut_spring_indices:", np.shape(self.cut_spring_indices))
-        print("self.cut_virtual_tri_indices:", np.shape(self.cut_virtual_tri_indices))
+        if verbose:
+            print("self.cut_edge_indices:", np.shape(self.cut_edge_indices))
+            print("self.cut_spring_indices:", np.shape(self.cut_spring_indices))
+            print("self.cut_virtual_tri_indices:", np.shape(self.cut_virtual_tri_indices))
 
         m.contact_mask = torch.tensor([(0.0 if i in self.contactless_particles else 1.0) for i in range(len(self.particle_q))],
                                       dtype=torch.float32,

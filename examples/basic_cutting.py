@@ -17,7 +17,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
-from cutting import load_settings, SlicingMotion, CuttingSim
+from disect.cutting import load_settings, SlicingMotion, CuttingSim
 # fmt: on
 
 settings = load_settings("examples/config/ansys_prism.json")

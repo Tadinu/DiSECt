@@ -29,8 +29,8 @@ from tensorboardX import SummaryWriter
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
 
-from cutting import CuttingSim
-from cutting import load_settings, ConstantLinearVelocityMotion, Parameter
+from disect.cutting import CuttingSim
+from disect.cutting import load_settings, ConstantLinearVelocityMotion, Parameter
 # fmt: on
 
 parameters = {

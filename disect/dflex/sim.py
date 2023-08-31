@@ -14,9 +14,9 @@ import math
 import torch
 import numpy as np
 
-import dflex.util
-import dflex.adjoint as df
-import dflex.config
+import disect.dflex.util
+import disect.dflex.adjoint as df
+import disect.dflex.config
 
 from dflex.model import *
 import time

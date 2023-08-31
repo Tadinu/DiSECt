@@ -15,7 +15,7 @@ import weakref
 import torch
 import torch.utils.cpp_extension
 
-import dflex.config
+import disect.dflex.config
 
 # -----
 

@@ -17,12 +17,12 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from scipy.spatial import KDTree
 
-from cutting.settings import default_parameters, datasets
-from cutting.utils import *
-from cutting.plot_posterior import colorline
-from cutting.knife import *
-from cutting.motion import *
-from cutting.urdf_loader import load_urdf
+from disect.cutting.settings import default_parameters, datasets
+from disect.cutting.utils import *
+from disect.cutting.plot_posterior import colorline
+from disect.cutting.knife import *
+from disect.cutting.motion import *
+from disect.cutting.urdf_loader import load_urdf
 from pathlib import Path
 from tqdm import tqdm
 from scipy.interpolate import interp1d
@@ -43,10 +43,12 @@ class CuttingSim:
                  force_all_params_shared=False,
                  adapter: str = 'cuda',
                  requires_grad=True,
-                 show_cutting_surface=False):
+                 show_cutting_surface=False,
+                 verbose=True):
         assert isinstance(settings, dict)
         self.settings = settings
         self.adapter = adapter
+        self.verbose = verbose
 
         self.dataset = dataset
         if dataset != '':
@@ -104,8 +106,8 @@ class CuttingSim:
         self.knife_faces = None
         self.knife_vertices = None
 
-        # here is the first time we import dFlex, which is where the kernels may get rebuilt if needed
-        import dflex as df
+        # here is the first time we import disect.dflex, which is where the kernels may get rebuilt if needed
+        import disect.dflex as df
         from dflex.sim import ModelBuilder
         self.builder = ModelBuilder()
 
@@ -116,6 +118,8 @@ class CuttingSim:
         self.requires_grad = requires_grad
         if not requires_grad:
             self.disable_gradients()
+        else:
+            self.enable_gradiants()
 
         self.settings["mu"], self.settings["lambda"] = convert_lame(
             young=settings.young, poisson=settings.poisson)
@@ -205,14 +209,18 @@ class CuttingSim:
         """
         Disable gradient computation globally for the entire simulation back-end.
         """
-        import dflex as df
+        import disect.dflex as df
         df.config.no_grad = True
+    
+    def enable_gradiants(self):
+        import disect.dflex as df
+        df.config.no_grad = False
 
     def setup_free_floating_knife(self, knife: Knife = None):
         """
         Set up a free-floating knife.
         """
-        import dflex as df
+        import disect.dflex as df
         if knife is not None:
             self.knife = knife
         # add rigid body for the knife
@@ -263,7 +271,7 @@ class CuttingSim:
         In case the collision mesh defined in the URDF is not adequate, a custom triangular knife mesh can be provided via the triangular face indices and mesh vertices.
         Note that this feature is not fully tested and may not work properly.
         """
-        import dflex as df
+        import disect.dflex as df
         last_link_id = max(self.builder.shape_body) if len(
             self.builder.shape_body) > 0 else 0
         load_urdf(self.builder, urdf_filename, df.transform(
@@ -303,7 +311,7 @@ class CuttingSim:
         Optionally, the time domain over which the knife motion is traced can be extended by the `time_extend_factor` that prepends and appends time relative to the overall `sim_duration`.
         Returns the list of vertices, the list of face indices, and the triangle point tuples of the cutting surface.
         """
-        import dflex as df
+        import disect.dflex as df
         if knife_motion is None:
             knife_motion = self.motion
         if self.knife_faces is None or self.knife_vertices is None:
@@ -455,7 +463,7 @@ class CuttingSim:
         """
         Perform the topological cutting operation where the mesh is processed given the currently selected knife and its motion.
         """
-        import dflex as df
+        import disect.dflex as df
 
         if mode is not None:
             self.settings.cutting.mode = mode
@@ -470,8 +478,7 @@ class CuttingSim:
 
         if mode != "hybrid":
             self.prepare_cut()
-            self.nodes_above_cut, self.nodes_below_cut = self.get_nodes_above_and_below_cut(
-                self.cut_surface_triangles)
+            self.nodes_above_cut, self.nodes_below_cut = self.get_nodes_above_and_below_cut(self.cut_surface_triangles)
 
         xs = np.array(self.builder.particle_q)
 
@@ -512,7 +519,8 @@ class CuttingSim:
         self.model = self.builder.finalize(adapter=self.adapter,
                                            knife=self.knife,
                                            minimum_mass=self.settings.minimum_particle_mass,
-                                           requires_grad=self.requires_grad)
+                                           requires_grad=self.requires_grad,
+                                           verbose=False)
 
         # generate contact points (only if the mesh parts are simulated via rigid bodies)
         # self.model.collide(None)
@@ -544,6 +552,7 @@ class CuttingSim:
 
         self.model.initial_x = torch.tensor(
             self.builder.particle_q, device=self.adapter, dtype=torch.float32)
+        self.number_of_cut_spring = len(self.model.cut_spring_indices)
         # self.model.initial_x[self.nodes_above_cut] -= self.model.com_above_cut
         # self.model.initial_x[self.nodes_below_cut] -= self.model.com_below_cut
 
@@ -554,43 +563,34 @@ class CuttingSim:
         if "initial_y" in self.parameters:
             assert type(
                 self.motion) == ConstantLinearVelocityMotion, "Knife motion must be of type ConstantLinearVelocityMotion to infer 'initial_y' parameter."
-            self.motion.initial_pos[1] = self.parameters["initial_y"].assignable_tensor(
-            )
+            self.motion.initial_pos[1] = self.parameters["initial_y"].assignable_tensor(self.verbose)
         if "velocity_y" in self.parameters:
             assert type(
                 self.motion) == ConstantLinearVelocityMotion, "Knife motion must be of type ConstantLinearVelocityMotion to infer 'velocity_y' parameter."
-            self.motion.lin_vel[1] = self.parameters["velocity_y"].assignable_tensor(
-            )
+            self.motion.lin_vel[1] = self.parameters["velocity_y"].assignable_tensor(self.verbose)
         if "cut_spring_ke" in self.parameters:
-            self.state.cut_spring_ke = self.parameters["cut_spring_ke"].assignable_tensor(
-            )
-            self.model.cut_spring_stiffness = self.parameters["cut_spring_ke"].assignable_tensor(
-            )
+            self.state.cut_spring_ke = self.parameters["cut_spring_ke"].assignable_tensor(self.verbose)
+            self.model.cut_spring_stiffness = self.parameters["cut_spring_ke"].assignable_tensor(self.verbose)
         if "cut_spring_kd" in self.parameters:
-            self.state.cut_spring_kd = self.parameters["cut_spring_kd"].assignable_tensor(
-            )
+            self.state.cut_spring_kd = self.parameters["cut_spring_kd"].assignable_tensor(self.verbose)
         if "cut_spring_softness" in self.parameters:
-            self.model.cut_spring_softness = self.parameters["cut_spring_softness"].assignable_tensor(
-            )
+            self.model.cut_spring_softness = self.parameters["cut_spring_softness"].assignable_tensor(self.verbose)
         if "sdf_radius" in self.parameters:
-            self.model.sdf_radius = self.parameters["sdf_radius"].assignable_tensor(
-            )
+            self.model.sdf_radius = self.parameters["sdf_radius"].assignable_tensor(self.verbose)
         if "sdf_ke" in self.parameters:
-            self.model.sdf_ke = self.parameters["sdf_ke"].assignable_tensor()
+            self.model.sdf_ke = self.parameters["sdf_ke"].assignable_tensor(self.verbose)
         if "sdf_kd" in self.parameters:
-            self.model.sdf_kd = self.parameters["sdf_kd"].assignable_tensor()
+            self.model.sdf_kd = self.parameters["sdf_kd"].assignable_tensor(self.verbose)
         if "sdf_kf" in self.parameters:
-            self.model.sdf_kf = self.parameters["sdf_kf"].assignable_tensor()
+            self.model.sdf_kf = self.parameters["sdf_kf"].assignable_tensor(self.verbose)
         if "sdf_mu" in self.parameters:
-            self.model.sdf_mu = self.parameters["sdf_mu"].assignable_tensor()
+            self.model.sdf_mu = self.parameters["sdf_mu"].assignable_tensor(self.verbose)
         if "mu" in self.parameters:
-            self.model.tet_mu = self.parameters["mu"].assignable_tensor()
+            self.model.tet_mu = self.parameters["mu"].assignable_tensor(self.verbose)
         if "lambda" in self.parameters:
-            self.model.tet_lambda = self.parameters["lambda"].assignable_tensor(
-            )
+            self.model.tet_lambda = self.parameters["lambda"].assignable_tensor(self.verbose)
         if "damping" in self.parameters:
-            self.model.tet_damping = self.parameters["damping"].assignable_tensor(
-            )
+            self.model.tet_damping = self.parameters["damping"].assignable_tensor(self.verbose)
 
     def init_parameter_(self, param_name, src_tensor):
         """
@@ -624,15 +624,16 @@ class CuttingSim:
             src_tensor = optimized_tensors[param] if param in optimized_tensors.keys() else default
             self.init_parameter_(param, src_tensor)
         
-        print("Selected the following parameters for optimization:\n\t[%s]\n" % ", ".join(
-            self.parameter_names))
+        if self.verbose:
+            print("Selected the following parameters for optimization:\n\t[%s]\n" % ", ".join(
+                self.parameter_names))
         return self.optim_params
 
     def simulation_step(self):
         """
         Perform a single simulation step where the dynamics model is evaluated and the state is updated from the integrator.
         """
-        import dflex as df
+        import disect.dflex as df
 
         # torch_time = torch.tensor(self.sim_time, device=self.adapter)
         # self.motion.update_state(self.state, torch_time, self.sim_dt)
@@ -916,7 +917,7 @@ class CuttingSim:
         from scipy.spatial import ConvexHull
         from matplotlib.patches import Polygon
         from matplotlib.collections import PatchCollection
-        import dflex as df
+        import disect.dflex as df
 
         def plot_knife_outline(pos, rot, ax0, ax1, alpha=0.8):
             knife_vertices, _ = self.knife.create_mesh()
@@ -1081,7 +1082,7 @@ class CuttingSim:
         """
         Creates an interactive visualizer and runs the simulation.
         """
-        from cutting import Visualizer
+        from disect.cutting import Visualizer
         from PyQt5 import Qt
         app = Qt.QApplication(sys.argv)
         _ = Visualizer(self, skip_steps=skip_steps, **kwargs)

@@ -427,7 +427,7 @@ class Visualizer:
         os._exit(0)
 
     def update_view(self):
-        import dflex as df
+        import disect.dflex as df
         ps = self.sim.state.particle_q.detach().cpu().numpy() * self.scaling
         if self.surf is not None:
             self.surf.points = ps
@@ -486,7 +486,7 @@ class Visualizer:
             :7].tolist()
         knife_vel = self.sim.state.body_v_s[self.sim.model.knife_link_index].detach().cpu().numpy()[
             :6].tolist()
-        self.screen_label.SetText(2, "Time: %02.2f\nKnife pos: %.3f %.3f %.3f   %.3f %.3f %.3f %.3f\nKnife vel: %.3f %.3f %.3f   %.3f %.3f %.3f" % (
+        self.screen_label.SetText(2, "Time: %02.2f\nKnife pos: %.3f %.3f %.3f   %.6f %.6f %.6f %.6f\nKnife vel: %.3f %.3f %.3f   %.3f %.3f %.3f" % (
             self.sim.sim_time, knife_pos[0], knife_pos[1], knife_pos[2], knife_pos[3], knife_pos[4], knife_pos[5], knife_pos[6], knife_vel[0], knife_vel[1], knife_vel[2], knife_vel[3], knife_vel[4], knife_vel[5]))
 
         self.screen_label.SetText(
@@ -496,7 +496,7 @@ class Visualizer:
 
     def start(self):
         def simulate():
-            import dflex as df
+            import disect.dflex as df
             df.config.no_grad = True
             with torch.no_grad():
                 self.coarse_sim_step = 0

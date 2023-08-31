@@ -157,7 +157,7 @@ class Parameter:
         assert (not torch.isinf(self.tensor).any()), f"{self.name} is inf"
         return self.tensor
 
-    def assignable_tensor(self):
+    def assignable_tensor(self, verbose=True):
         if self.tensor is None:
             raise Exception(
                 f"Tensor for parameter {self.name} has not been set.")
@@ -166,14 +166,15 @@ class Parameter:
         else:
             self.op = self.tensor
         dim = "x".join(map(str, self.shape)) if self.tensor.ndim > 0 else "1"
-        if self.op.ndim > 0:
-            print(
-                f'Assigning {self.name} = [{torch.min(self.op).item()} .. {torch.max(self.op).item()}]\t (initial value: [{np.min(self.value)} .. {np.max(self.value)}], actual tensor value: [{np.min(self.actual_tensor_value)} .. {np.max(self.actual_tensor_value)}]) with dimension {dim}.'
-            )
-        else:
-            print(
-                f'Assigning {self.name} = {self.op.item()}\t (initial value: {self.value}, actual tensor value: {self.actual_tensor_value}) with dimension {dim}.'
-            )
+        if verbose:
+            if self.op.ndim > 0:
+                print(
+                    f'Assigning {self.name} = [{torch.min(self.op).item()} .. {torch.max(self.op).item()}]\t (initial value: [{np.min(self.value)} .. {np.max(self.value)}], actual tensor value: [{np.min(self.actual_tensor_value)} .. {np.max(self.actual_tensor_value)}]) with dimension {dim}.'
+                )
+            else:
+                print(
+                    f'Assigning {self.name} = {self.op.item()}\t (initial value: {self.value}, actual tensor value: {self.actual_tensor_value}) with dimension {dim}.'
+                )
         if not self.individual and self.shape is not None:
             if self.tensor.ndim > 0:
                 raise Exception(
@@ -506,7 +507,24 @@ datasets = {
         'sdf_kf',
         'cut_spring_ke',
         'cut_spring_softness',
-    ], config_file="config/default_cut_settings.json", surface_equal_interior=True)
+    ], config_file="config/default_cut_settings.json", surface_equal_interior=True),
+    'cucumber_real':
+    Dataset(params=[
+        'sdf_ke',
+        'surface_sdf_ke',
+        'sdf_kd',
+        'surface_sdf_kd',
+        'sdf_kf',
+        'surface_sdf_kf',
+        'sdf_mu',
+        'surface_sdf_mu',
+        'cut_spring_ke',
+        'surface_cut_spring_ke',
+        'cut_spring_softness',
+        'surface_cut_spring_softness',
+    ],
+        config_file="config/cooking/ansys_cucumber.json",
+        surface_equal_interior=False),
 }
 
 
