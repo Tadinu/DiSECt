@@ -18,7 +18,9 @@ import disect.dflex.util
 import disect.dflex.adjoint as df
 import disect.dflex.config
 
-from dflex.model import *
+from disect.dflex.model import *
+import disect.dflex as dflex
+
 import time
 
 

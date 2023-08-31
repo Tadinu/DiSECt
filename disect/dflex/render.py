@@ -42,6 +42,7 @@ from pxr import Usd, UsdGeom, Gf, Sdf
 
 import disect.dflex.sim
 import disect.dflex.util
+import disect.dflex as dflex
 
 import numpy as np
 import math

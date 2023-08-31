@@ -21,7 +21,7 @@ Quat = List[float]
 Mat33 = List[float]
 Transform = Tuple[Vec3, Quat]
 
-from dflex.util import *
+from disect.dflex.util import *
 
 # shape geometry types
 GEO_SPHERE = 0

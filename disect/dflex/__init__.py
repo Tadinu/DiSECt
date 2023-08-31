@@ -5,11 +5,11 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-from dflex.sim import *
-from dflex.render import *
-from dflex.adjoint import compile
+from .sim import *
+from .render import *
+from .adjoint import compile
 
-from dflex.util import *
+from .util import *
 
 # compiles kernels
 kernel_init()

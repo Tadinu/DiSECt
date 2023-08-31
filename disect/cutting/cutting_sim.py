@@ -108,7 +108,7 @@ class CuttingSim:
 
         # here is the first time we import disect.dflex, which is where the kernels may get rebuilt if needed
         import disect.dflex as df
-        from dflex.sim import ModelBuilder
+        from disect.dflex.sim import ModelBuilder
         self.builder = ModelBuilder()
 
         self.show_cutting_surface = show_cutting_surface
@@ -688,7 +688,7 @@ class CuttingSim:
         if render:
             # set up Usd renderer
             from pxr import Usd
-            from dflex.render import UsdRenderer
+            from disect.dflex.render import UsdRenderer
             stage_name = f"outputs/{self.experiment_name}.usd"
             stage = Usd.Stage.CreateNew(stage_name)
             renderer = UsdRenderer(self.model, stage)

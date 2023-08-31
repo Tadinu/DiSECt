@@ -16,6 +16,7 @@ import torch
 import torch.utils.cpp_extension
 
 import disect.dflex.config
+import disect.dflex as dflex
 
 # -----
 
