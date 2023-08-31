@@ -709,7 +709,7 @@ class ModelBuilder:
 
         # joint data
         self.joint_type.append(type)
-        self.joint_axis.append(np.array(axis))
+        self.joint_axis.append(axis)
         self.joint_parent.append(parent)
         self.joint_X_pj.append(X_pj)
 
@@ -2281,7 +2281,7 @@ class ModelBuilder:
         body_I_m = [] 
 
         for i in range(len(self.body_inertia)):
-            body_I_m.append(spatial_matrix_from_inertia(self.body_inertia[i], self.body_mass[i]))
+            body_I_m.append(spatial_matrix_from_inertia(self.body_inertia[i], self.body_mass[i]).tolist())
             body_X_cm.append(transform(self.body_com[i], quat_identity()))
         
         m.body_I_m = torch.tensor(body_I_m, dtype=torch.float32, device=adapter)

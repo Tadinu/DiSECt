@@ -214,7 +214,7 @@ def transform_multiply(t, u):
 
 # flatten an array of transforms (p,q) format to a 7-vector
 def transform_flatten(t):
-    return np.array([*t[0], *t[1]])
+    return np.array([*t[0], *t[1]]).tolist()
 
 
 # expand a 7-vec to a tuple of arrays
