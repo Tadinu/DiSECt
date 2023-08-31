@@ -606,27 +606,22 @@ class CuttingSim:
                 })
                 self.parameter_names.append(param_name)
 
-    def init_parameters(self):
+    def init_parameters(self, optimized_tensors: dict ={}):
         """
         Initializes the tensors for the optimizable simulation parameters.
         """
+        parameters = ["velocity_y", "initial_y", "lateral_velocity", "cut_spring_ke", "cut_spring_kd", "cut_spring_softness",
+                      "sdf_radius", "sdf_ke", "sdf_kd", "sdf_kf", "sdf_mu", "mu", "lambda", "damping"]
+        default_values = [None, None, None, self.model.cut_spring_stiffness, self.model.cut_spring_damping, self.model.cut_spring_softness,
+                          self.model.sdf_radius, self.model.sdf_ke, self.model.sdf_kd, self.model.sdf_kf, self.model.sdf_mu, self.model.tet_mu, 
+                          self.model.tet_lambda, self.model.tet_damping]
         self.parameter_names = []
         self.optim_params = []
-        self.init_parameter_("velocity_y", None)
-        self.init_parameter_("initial_y", None)
-        self.init_parameter_("lateral_velocity", None)
-        self.init_parameter_("cut_spring_ke", self.model.cut_spring_stiffness)
-        self.init_parameter_("cut_spring_kd", self.model.cut_spring_damping)
-        self.init_parameter_("cut_spring_softness",
-                             self.model.cut_spring_softness)
-        self.init_parameter_("sdf_radius", self.model.sdf_radius)
-        self.init_parameter_("sdf_ke", self.model.sdf_ke)
-        self.init_parameter_("sdf_kd", self.model.sdf_kd)
-        self.init_parameter_("sdf_kf", self.model.sdf_kf)
-        self.init_parameter_("sdf_mu", self.model.sdf_mu)
-        self.init_parameter_("mu", self.model.tet_mu)
-        self.init_parameter_("lambda", self.model.tet_lambda)
-        self.init_parameter_("damping", self.model.tet_damping)
+        
+        for param, default in zip(parameters, default_values):
+            src_tensor = optimized_tensors[param] if param in optimized_tensors.keys() else default
+            self.init_parameter_(param, src_tensor)
+        
         print("Selected the following parameters for optimization:\n\t[%s]\n" % ", ".join(
             self.parameter_names))
         return self.optim_params
@@ -1089,3 +1084,13 @@ class CuttingSim:
         app = Qt.QApplication(sys.argv)
         _ = Visualizer(self, skip_steps=skip_steps, **kwargs)
         sys.exit(app.exec_())
+
+    def save_optimized_parameters(self, filename):
+        tensor_dict = {}
+        for param in self.optim_params:
+            if self.parameters[param['name']].apply_sigmoid:
+                values = self.parameters[param['name']].apply_bounds(self.parameters[param['name']].tensor)
+            else:
+                values = self.parameters[param['name']].tensor
+            tensor_dict.update({param['name']: values})
+        torch.save(tensor_dict, filename)

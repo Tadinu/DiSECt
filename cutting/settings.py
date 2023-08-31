@@ -154,6 +154,7 @@ class Parameter:
             self.tensor = torch.tensor(
                 value, dtype=dtype, device=adapter, requires_grad=True)
         assert (not torch.isnan(self.tensor).any()), f"{self.name} is NaN"
+        assert (not torch.isinf(self.tensor).any()), f"{self.name} is inf"
         return self.tensor
 
     def assignable_tensor(self):
