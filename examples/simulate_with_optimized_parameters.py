@@ -22,28 +22,28 @@ from disect.cutting import load_settings, CuttingSim, Parameter
 
 # fmt: on
 parameters = {
-    "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 4000),
+    "initial_y": Parameter("initial_y", 0.055, 0.05, 0.06),
+    "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
     "cut_spring_softness": Parameter("cut_spring_softness", 200, 10, 5000),
-    "sdf_ke": Parameter("sdf_ke", 1000, 200., 4000, individual=True),
+    "sdf_ke": Parameter("sdf_ke", 500, 200., 8000, individual=True),
     "sdf_kd": Parameter("sdf_kd", 1., 0.1, 100.),
     "sdf_kf": Parameter("sdf_kf", 0.01, 0.001, 8000.0),
     "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
 }
 
-# settings = load_settings("examples/config/ansys_prism.json")
-# settings = load_settings("examples/config/ansys_cylinder_jello.json")
-# settings = load_settings("examples/config/ansys_sphere_apple.json")
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
-settings.sim_duration = 1.0
-settings.sim_dt = 1e-5  # 5e-5
-settings.initial_y = 0.055
-settings.velocity_y = -0.02
-experiment_name = "cutting_prism"
+settings.sim_duration = 1.2
+settings.sim_dt = 1e-5
+settings.initial_y = 0.03 + 0.025  # center of knife + actual desired height
+settings.velocity_y = -0.020
 device = "cuda"
 requires_grad = False
+experiment_name = "cutting_prism"
 
 
-optimized_parameters = torch.load(f'log/param_inference_dt1e-05_20230831-0240/optimized_tensors_0.pt')
+optimized_parameters = torch.load(f'log/optuna_param_inference_dt1e-05_20230831-0550/best_optuna_optimized_tensors.pt')
+if 'initial_y' in optimized_parameters.keys():
+    optimized_parameters.update({'initial_y' : optimized_parameters['initial_y'][0]})
 sim = CuttingSim(settings, experiment_name=experiment_name,
                  parameters=parameters,
                  adapter=device, requires_grad=requires_grad)
