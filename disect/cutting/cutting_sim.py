@@ -51,6 +51,7 @@ class CuttingSim:
         self.adapter = adapter
         self.verbose = verbose
         self.allow_nans = allow_nans
+        self.optimized_tensors = {}
 
         self.dataset = dataset
         if dataset != '':
@@ -610,7 +611,7 @@ class CuttingSim:
                 })
                 self.parameter_names.append(param_name)
 
-    def init_parameters(self, optimized_tensors: dict ={}):
+    def init_parameters(self):
         """
         Initializes the tensors for the optimizable simulation parameters.
         """
@@ -623,8 +624,11 @@ class CuttingSim:
         self.optim_params = []
         
         for param, default in zip(parameters, default_values):
-            src_tensor = optimized_tensors[param] if param in optimized_tensors.keys() else default
-            self.init_parameter_(param, src_tensor)
+            if self.optimized_tensors:
+                src_tensor = self.optimized_tensors[param] if param in self.optimized_tensors.keys() else default
+                self.init_parameter_(param, src_tensor)
+            else:
+                self.init_parameter_(param, default)
         
         if self.verbose:
             print("Selected the following parameters for optimization:\n\t[%s]\n" % ", ".join(
@@ -949,22 +953,20 @@ class CuttingSim:
         # plot trace of the knife
         plt.plot(np_hist_knife_pos[:, ax0],
                  np_hist_knife_pos[:, ax1], alpha=0.0)
-        colorline(
-            plt.gca(), np_hist_knife_pos[:, ax0], np_hist_knife_pos[:, ax1], zorder=4)
-        num_steps_to_plot = min(
-            num_steps_to_plot, self.hist_knife_pos.shape[0])
+        dist_to_blade = self.knife.spine_height / 2.0
+        colorline(plt.gca(), np_hist_knife_pos[:, ax0], np_hist_knife_pos[:, ax1] - dist_to_blade, zorder=4)
+        num_steps_to_plot = min(num_steps_to_plot, self.hist_knife_pos.shape[0])
         alpha_factor = 0.6 / num_steps_to_plot
         i_factor = len(np_hist_knife_pos) // num_steps_to_plot
         for i in range(num_steps_to_plot):
             alpha = (i + 1) * alpha_factor
             ii = i * i_factor
-            knife_xs = plot_knife_outline(
-                np_hist_knife_pos[ii], np_hist_knife_rot[ii], ax0, ax1, alpha=alpha)
+            knife_xs = plot_knife_outline(np_hist_knife_pos[ii], np_hist_knife_rot[ii], ax0, ax1, alpha=alpha)
             try:
                 hull = ConvexHull(knife_xs[:, [ax0, ax1]])
                 hull = knife_xs[hull.vertices]
                 polygon = Polygon(hull[:, [ax0, ax1]], True)
-                p = PatchCollection([polygon], alpha=alpha, facecolors=['C0'], edgecolor=[
+                p = PatchCollection([polygon], alpha=alpha, facecolors=['silver'], edgecolor=[
                                     'black'], linewidths=(1, ), zorder=2)
                 plt.gca().add_collection(p)
             except:
@@ -1013,6 +1015,37 @@ class CuttingSim:
         self.__plot_knife_motion(ax0=0, ax1=1)
         plt.tight_layout()
         return fig
+
+    def load_optimized_parameters(self, filename=None, optimized_params=None):
+        scalar_values = ['initial_y']
+        self.optimized_tensors = {}
+        num_cut_springs = len(self.model.cut_spring_indices)
+        if filename:
+            if filename.endswith('.pt'):
+                data = torch.load(open(filename, 'rb'))
+                for param, value in data.items():
+                    if param in self.parameters.keys():
+                        if num_cut_springs > value.shape[0]:
+                            opt_tensor = torch.cat((value, torch.ones(num_cut_springs-value.shape[0], device=self.adapter)*torch.min(value)), dim=0)
+                        else:
+                            opt_tensor = value[:num_cut_springs]
+                        self.optimized_tensors.update({param: opt_tensor})
+            elif filename.endswith('.pkl'):
+                data = pickle.load(open(filename, 'rb'))
+                for param, value in data.items():
+                    if param in self.parameters.keys():
+                        if param not in scalar_values:
+                            opt_tensor = torch.tensor([value]*num_cut_springs, device=self.adapter, dtype=torch.float32, requires_grad=self.requires_grad)
+                        else:
+                            opt_tensor = torch.tensor(value, device=self.adapter, dtype=torch.float32, requires_grad=self.requires_grad)
+                        self.optimized_tensors.update({param: opt_tensor})
+            else:
+                raise ValueError("Unsupported file extension")
+        
+        elif optimized_params:
+            self.optimized_tensors = dict_to_tensor(optimized_params, self.parameters, num_cut_springs, scalar_values, 
+                                                    device=self.adapter, requires_grad=self.requires_grad)
+
 
     def load_groundtruth(self, groundtruth, groundtruth_dt=None):
         """

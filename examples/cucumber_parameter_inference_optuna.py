@@ -27,6 +27,7 @@ import os
 import optuna
 from datetime import datetime
 import pytz
+import pickle
 
 from tensorboardX import SummaryWriter
 
@@ -38,19 +39,19 @@ from disect.cutting import load_settings, ConstantLinearVelocityMotion, Paramete
 # fmt: on
 
 parameters = {
-    "initial_y": Parameter("initial_y", 0.055, 0.05, 0.06),
+    # "initial_y": Parameter("initial_y", 0.055, 0.055, 0.07),
     "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
     "cut_spring_softness": Parameter("cut_spring_softness", 200, 10, 5000),
     "sdf_ke": Parameter("sdf_ke", 500, 200., 8000, individual=True),
-    "sdf_kd": Parameter("sdf_kd", 1., 0.1, 100.),
-    "sdf_kf": Parameter("sdf_kf", 0.01, 0.001, 8000.0),
-    "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
+    "sdf_kd": Parameter("sdf_kd", 1., 0.1, 100., individual=True),
+    "sdf_kf": Parameter("sdf_kf", 0.01, 0.001, 8000.0, individual=True),
+    "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0, individual=True),
 }
 
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
-settings.sim_duration = 1.2
+settings.sim_duration = 1.3
 settings.sim_dt = 2e-5
-settings.initial_y = 0.03 + 0.025  # center of knife + actual desired height
+settings.initial_y = 0.02 + 0.027  # center of knife + actual desired height
 settings.velocity_y = -0.020
 device = "cuda"
 learning_rate = 0.01
@@ -62,7 +63,7 @@ logger = SummaryWriter(logdir=f"log/{experiment_name}")
 requires_grad = False
 
 sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=requires_grad,
-                 parameters=parameters, verbose=False)
+                 parameters=parameters, verbose=False, allow_nans=False)
 sim.motion = ConstantLinearVelocityMotion(
     initial_pos=torch.tensor([0.0, settings.initial_y, 0.0], device=device),
     linear_velocity=torch.tensor([0.0, settings.velocity_y, 0.0], device=device))
@@ -88,12 +89,8 @@ def objective(trial):
     for name, param in parameters.items():
         suggestion.update({name: trial.suggest_float(name, param.low, param.high)})       
 
-    optimized_tensors = {}
-    for key, value in suggestion.items():
-        optimized_tensors.update({key: torch.tensor([value]*sim.number_of_cut_spring)})
-    optimized_tensors.update({'initial_y': torch.tensor(suggestion['initial_y'])})
-
-    sim.init_parameters(optimized_tensors)
+    sim.load_optimized_parameters(optimized_params=suggestion)
+    sim.init_parameters()
 
     # Computing the optuna_loss function
     try:
@@ -127,28 +124,24 @@ study.optimize(objective, n_trials=optuna_trials, show_progress_bar=True)
 # Display the information regarding the best trial
 print("Best trial:", study.best_params)
 
-optimized_tensors = {}
-for key, value in study.best_params.items():
-    if key in parameters.keys():
-        optimized_tensors.update({key: torch.tensor([value]*sim.number_of_cut_spring, device=device, dtype=torch.float32, requires_grad=True)})
-    else:
-        settings[key] = value
-
-# Remove params not optimized with Adam
-del parameters['initial_y']
-
-torch.save(optimized_tensors, f"log/{experiment_name}/best_optuna_optimized_tensors.pt")
+optuna_results = f"log/{experiment_name}/best_optuna_optimized_tensors.pkl"
+pickle.dump(study.best_params, open(optuna_results, "wb"))
 
 #########################
 ### Adam Optimization ###
 #########################
-del sim
 print("============ Adam Optimization ===============")
+
+# Remove params not optimized with Adam
+if 'initial_y' in parameters.keys():
+    del parameters['initial_y']
+# Reset simulation
+del sim
 requires_grad = True
 settings.sim_duration = 1.0
 
 sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=requires_grad,
-                 parameters=parameters, verbose=False)
+                 parameters=parameters, verbose=False, allow_nans=False)
 sim.motion = ConstantLinearVelocityMotion(
     initial_pos=torch.tensor([0.0, settings.initial_y, 0.0], device=device),
     linear_velocity=torch.tensor([0.0, settings.velocity_y, 0.0], device=device))
@@ -157,7 +150,8 @@ sim.cut()
 
 sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=0.002)
 
-opt_params = sim.init_parameters(optimized_tensors)
+sim.load_optimized_parameters(optuna_results)
+opt_params = sim.init_parameters()
 
 opt = torch.optim.Adam(opt_params, lr=learning_rate)
 

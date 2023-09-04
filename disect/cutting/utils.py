@@ -7,6 +7,7 @@
 
 from collections import OrderedDict, defaultdict
 import numpy as np
+import pathlib
 import torch
 from sty import fg, rs
 
@@ -169,3 +170,15 @@ def padding_tensors(sim, optimized_parameters, device):
         else:
             new_tensor = tensor[:num_cut_spring]
         optimized_parameters[key] = new_tensor
+
+
+def dict_to_tensor(data, parameters, size, scalar_values, device, requires_grad):
+    optimized_tensors = {}
+    for param, value in data.items():
+        if param in parameters.keys():
+            if param not in scalar_values:
+                opt_tensor = torch.tensor([value]*size, device=device, dtype=torch.float32, requires_grad=requires_grad)
+            else:
+                opt_tensor = torch.tensor(value, device=device, dtype=torch.float32, requires_grad=requires_grad)
+            optimized_tensors.update({param: opt_tensor})
+    return optimized_tensors
