@@ -20,7 +20,9 @@ import torch
 from disect.cutting import load_settings, SlicingMotion, CuttingSim
 # fmt: on
 
-settings = load_settings("examples/config/ansys_prism.json")
+# settings = load_settings("examples/config/ansys_prism.json")
+# settings = load_settings("examples/config/ansys_sphere_apple.json")
+settings = load_settings("examples/config/ansys_cylinder_jello.json")
 settings.sim_duration = 5.0
 settings.sim_dt = 1e-4  # 5e-5
 settings.initial_y = 0.08
@@ -57,4 +59,4 @@ sim.cut()
 
 # sim.visualize_cut(cut_separation=0.01)
 
-sim.visualize()
+sim.visualize(auto_start=False)

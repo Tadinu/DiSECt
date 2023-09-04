@@ -35,6 +35,8 @@ from disect.cutting import load_settings, ConstantLinearVelocityMotion
 
 
 settings = load_settings("examples/config/ansys_sphere_apple.json")
+# settings = load_settings("examples/config/ansys_cylinder_jello.json")
+# settings = load_settings("examples/config/ansys_prism.json")
 settings.sim_duration = 0.4
 # settings.sim_dt = 4e-5
 settings.sim_dt = 1e-5
@@ -62,6 +64,7 @@ sim.cut()
 opt_params = sim.init_parameters()
 
 sim.load_groundtruth('dataset/forces/sphere_fine_resultant_force_xyz.csv')
+# sim.load_groundtruth('dataset/forces/prism_fine_resultant_force_xyz.csv')
 
 opt = torch.optim.Adam(opt_params, lr=learning_rate)
 
