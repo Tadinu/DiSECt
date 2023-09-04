@@ -25,7 +25,7 @@ class Parameter:
     This class maps the parameter to its tensor which can be optimized.
     """
 
-    def __init__(self, name, value, low=0., high=1., individual=True, fixed=False, apply_sigmoid=True):
+    def __init__(self, name, value, low=0., high=1., individual=True, fixed=False, apply_sigmoid=True, apply_noise=False, max_noise_percentage=1e-5):
         self.name = name
         # whether this parameter is optimized
         self.fixed = fixed
@@ -35,6 +35,8 @@ class Parameter:
         self.individual = individual
         self.tensor = None
         self.apply_sigmoid = apply_sigmoid
+        self.apply_noise = apply_noise
+        self.max_noise_percentage = max_noise_percentage
         self.shape = None
 
         self.value = value
@@ -161,10 +163,18 @@ class Parameter:
         if self.tensor is None:
             raise Exception(
                 f"Tensor for parameter {self.name} has not been set.")
-        if self.apply_sigmoid:
-            self.op = self.apply_bounds(self.tensor)
+
+        if self.apply_noise:
+            noise = torch.normal(torch.zeros_like(self.tensor), self.range * self.max_noise_percentage)
+            print("noise", self.range * self.max_noise_percentage, torch.min(noise).item(), torch.max(noise).item())
         else:
-            self.op = self.tensor
+            noise = torch.zeros_like(self.tensor)
+
+        if self.apply_sigmoid:
+            self.op = self.apply_bounds(self.tensor + noise)
+        else:
+            self.op = self.tensor + noise
+
         dim = "x".join(map(str, self.shape)) if self.tensor.ndim > 0 else "1"
         if verbose:
             if self.op.ndim > 0:
