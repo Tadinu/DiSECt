@@ -160,3 +160,12 @@ def inside(box, p):
     if p[2] < box.min[2] or p[2] > box.max[2]:
         return False
     return True
+
+def padding_tensors(sim, optimized_parameters, device):
+    num_cut_spring = len(sim.model.cut_spring_indices)
+    for key, tensor in optimized_parameters.items():
+        if num_cut_spring > tensor.shape[0]:
+            new_tensor = torch.cat((tensor, torch.ones(num_cut_spring-tensor.shape[0], device=device)*torch.min(tensor)), dim=0)
+        else:
+            new_tensor = tensor[:num_cut_spring]
+        optimized_parameters[key] = new_tensor

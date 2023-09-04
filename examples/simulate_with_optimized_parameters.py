@@ -18,11 +18,11 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
-from disect.cutting import load_settings, CuttingSim, Parameter
+from disect.cutting import load_settings, CuttingSim, Parameter, padding_tensors
 
 # fmt: on
 parameters = {
-    "initial_y": Parameter("initial_y", 0.055, 0.05, 0.06),
+    # "initial_y": Parameter("initial_y", 0.055, 0.05, 0.06),
     "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
     "cut_spring_softness": Parameter("cut_spring_softness", 200, 10, 5000),
     "sdf_ke": Parameter("sdf_ke", 500, 200., 8000, individual=True),
@@ -56,8 +56,11 @@ sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=
 sim.cut()
 
 optimized_parameters = torch.load(f'log/optuna_param_inference_dt1e-05_20230831-0550/best_optuna_optimized_tensors.pt')
+padding_tensors(sim, optimized_parameters, device)
+
+# print(optimized_parameters)
 if 'initial_y' in optimized_parameters.keys():
-    optimized_parameters.update({'initial_y' : optimized_parameters['initial_y'][0]})
+    optimized_parameters.update({'initial_y' : torch.tensor(settings.initial_y, device=device)})
 sim.init_parameters(optimized_parameters)
 
 # sim.simulate()
