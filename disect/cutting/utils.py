@@ -50,9 +50,12 @@ def load_mesh(filename):
     return indices, vertices
 
 
-def as_tensor(var, device='cuda', requires_grad=True):
+def as_tensor(var, device='cuda', requires_grad=True, copy=False):
     if type(var) == torch.Tensor:
-        return var
+        if copy:
+            return torch.clone(var)
+        else:
+            return var
     return torch.tensor(var, device=device, dtype=torch.float32, requires_grad=requires_grad)
 
 

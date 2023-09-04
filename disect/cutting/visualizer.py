@@ -89,6 +89,26 @@ class Visualizer:
         action.triggered.connect(self.toggle_plot)
         self.anim_menu.addAction(action)
 
+        action = Qt.QAction('Increase Knife Y Speed', self.plotter.app_window)
+        action.setShortcut('Up')
+        action.triggered.connect(self.increase_knife_speed)
+        self.anim_menu.addAction(action)
+
+        action = Qt.QAction('Decrease Knife Y Speed', self.plotter.app_window)
+        action.setShortcut('Down')
+        action.triggered.connect(self.decrease_knife_speed)
+        self.anim_menu.addAction(action)
+
+        action = Qt.QAction('Increase Knife RX Angular speed', self.plotter.app_window)
+        action.setShortcut('Right')
+        action.triggered.connect(self.increase_knife_angular_speed)
+        self.anim_menu.addAction(action)
+
+        action = Qt.QAction('Decrease Knife RX Angular speed', self.plotter.app_window)
+        action.setShortcut('Left')
+        action.triggered.connect(self.decrease_knife_angular_speed)
+        self.anim_menu.addAction(action)
+
         # Connecting the close signal to a callback function
         self.plotter.app_window.signal_close.connect(self.close)
 
@@ -424,6 +444,22 @@ class Visualizer:
         self.plot_knife_force_history = not self.plot_knife_force_history
         print("Plotting knife force history?", self.plot_knife_force_history)
 
+    def increase_knife_speed(self):
+        lin_vel = self.sim.motion.linear_velocity() + torch.tensor([0, 0.01, 0], device=self.sim.adapter)
+        self.sim.motion.set_linear_velocity(lin_vel)
+
+    def decrease_knife_speed(self):
+        lin_vel = self.sim.motion.linear_velocity() + torch.tensor([0, -0.01, 0], device=self.sim.adapter)
+        self.sim.motion.set_linear_velocity(lin_vel)
+
+    def increase_knife_angular_speed(self):
+        ang_vel = self.sim.motion.angular_velocity() + torch.tensor([np.deg2rad(1.), 0, 0], device=self.sim.adapter)
+        self.sim.motion.set_angular_velocity(ang_vel)
+
+    def decrease_knife_angular_speed(self):
+        ang_vel = self.sim.motion.angular_velocity() + torch.tensor([-np.deg2rad(1.), 0, 0], device=self.sim.adapter)
+        self.sim.motion.set_angular_velocity(ang_vel)
+
     # Callback function called to terminate all threads when closing the pyvista window
     def close(self):
         print("Closing.")
@@ -528,9 +564,11 @@ class Visualizer:
 
     def stop(self):
         self.is_playing = False
-        self.sim.assign_parameters()
+        self.sim.motion.reset()
+        print(self.sim.motion.linear_position())
         self.sim.model = copy.copy(self.start_model)
         self.sim.state = self.sim.model.state()
+        self.sim.assign_parameters()
         self.sim.sim_time = 0.0
         self.sim_step = 0
         self.hist_knife_force = []

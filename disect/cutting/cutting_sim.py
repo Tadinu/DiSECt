@@ -91,8 +91,8 @@ class CuttingSim:
 
         self.experiment_name = experiment_name
 
-        self.motion = ConstantLinearVelocityMotion(initial_pos=torch.tensor([0., self.settings.initial_y, 0.], device=self.adapter),
-                                                   linear_velocity=torch.tensor([0., self.settings.velocity_y, 0.], device=self.adapter))
+        self.motion = DynamicMotion(initial_pos=torch.tensor([0., self.settings.initial_y, 0.], device=self.adapter),
+                                    linear_velocity=torch.tensor([0., self.settings.velocity_y, 0.], device=self.adapter))
 
         # default knife type
         if self.settings.knife_type.lower() == "ybj":
@@ -326,10 +326,8 @@ class CuttingSim:
         ts = torch.linspace(-time_extend_factor * self.sim_duration, self.sim_duration *
                             (1. + time_extend_factor), num_time_steps, device=self.adapter)
 
-        rx = self.motion.linear_position(
-            ts[0], self.sim_dt).detach().cpu().numpy()
-        rr = self.motion.angular_position(
-            ts[0], self.sim_dt).detach().cpu().numpy()
+        rx = self.motion.linear_position(ts[0], self.sim_dt).detach().cpu().numpy()
+        rr = self.motion.angular_position([0], self.sim_dt).detach().cpu().numpy()
         # integrate linear velocity to get more accurate linear motion
         coarse_dt = self.sim_duration * \
             (1. + 2. * time_extend_factor) / num_time_steps
@@ -338,10 +336,8 @@ class CuttingSim:
         for t in ts:
             pos.append(rx.copy())
             rot.append(df.quat_to_matrix(rr).copy())
-            lin_vel = self.motion.linear_velocity(
-                t, self.sim_dt).detach().cpu().numpy()
-            ang_vel = self.motion.angular_velocity(
-                t, self.sim_dt).detach().cpu().numpy()
+            lin_vel = self.motion.linear_velocity(t, self.sim_dt).detach().cpu().numpy()
+            ang_vel = self.motion.angular_velocity(t, self.sim_dt).detach().cpu().numpy()
             rx += lin_vel * coarse_dt  # might have to integrate at finer resolution
             drdt = df.quat_multiply(np.concatenate((ang_vel, [0.0])), rr) * 0.5
             rr += drdt * coarse_dt
@@ -1016,13 +1012,15 @@ class CuttingSim:
         plt.tight_layout()
         return fig
 
-    def load_optimized_parameters(self, filename=None, optimized_params=None):
+    def load_optimized_parameters(self, filename=None, optimized_params=None, verbose=False):
         scalar_values = ['initial_y']
         self.optimized_tensors = {}
         num_cut_springs = len(self.model.cut_spring_indices)
         if filename:
             if filename.endswith('.pt'):
                 data = torch.load(open(filename, 'rb'))
+                if verbose:
+                    print("Pretrained params", data)
                 for param, value in data.items():
                     if param in self.parameters.keys():
                         if num_cut_springs > value.shape[0]:
@@ -1032,6 +1030,8 @@ class CuttingSim:
                         self.optimized_tensors.update({param: opt_tensor})
             elif filename.endswith('.pkl'):
                 data = pickle.load(open(filename, 'rb'))
+                if verbose:
+                    print("Pretrained params", data)
                 for param, value in data.items():
                     if param in self.parameters.keys():
                         if param not in scalar_values:
@@ -1045,7 +1045,6 @@ class CuttingSim:
         elif optimized_params:
             self.optimized_tensors = dict_to_tensor(optimized_params, self.parameters, num_cut_springs, scalar_values, 
                                                     device=self.adapter, requires_grad=self.requires_grad)
-
 
     def load_groundtruth(self, groundtruth, groundtruth_dt=None):
         """

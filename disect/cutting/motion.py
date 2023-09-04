@@ -19,10 +19,31 @@ sys.path.insert(0, os.path.abspath(
 # fmt: on
 
 
+def quaternion_multiply(quaternion1, quaternion0, device):
+    x0, y0, z0, w0 = quaternion0
+    x1, y1, z1, w1 = quaternion1
+    return torch.tensor([
+        x1*w0 + y1*z0 - z1*y0 + w1*x0,
+        -x1*z0 + y1*w0 + z1*x0 + w1*y0,
+        x1*y0 - y1*x0 + z1*w0 + w1*z0,
+        -x1*x0 - y1*y0 - z1*z0 + w1*w0], dtype=torch.float32, device=device)
+
+def integrateUnitQuaternionDMM(q, w, dt, device):
+    """ Integrate a unit quaterniong using the Direct Multiplicaiton Method"""
+    w_norm = torch.norm(w)
+    if w_norm == 0:
+        return q
+    q_tmp = torch.cat((torch.sin(w_norm*dt/2)*w/w_norm, torch.cos(w_norm*dt/2.).view(1)))
+    return quaternion_multiply(q_tmp, q, device)
+
 class Motion:
     """
     Implements the motion of the knife, i.e. it determines linear + angular position and velocity at each time step.
     """
+    @abstractmethod
+    def reset(self):
+        pass
+
     @abstractmethod
     def update_state(self, state, time, dt):
         pass
@@ -64,10 +85,8 @@ class ConstantLinearVelocityMotion(FreeFloatingKnifeMotion):
 
     def __init__(self, initial_pos, linear_velocity, initial_rot=np.array([0., 0., 0., 1.]), device='cuda'):
         self.initial_pos = as_tensor(initial_pos, device=device)
-        self.lin_vel = as_tensor(
-            linear_velocity, device=self.initial_pos.device)
-        self.initial_rot = as_tensor(
-            initial_rot, device=self.initial_pos.device)
+        self.lin_vel = as_tensor(linear_velocity, device=self.initial_pos.device)
+        self.initial_rot = as_tensor(initial_rot, device=self.initial_pos.device)
         self.device = device
 
     def linear_position(self, time, dt):
@@ -81,6 +100,61 @@ class ConstantLinearVelocityMotion(FreeFloatingKnifeMotion):
 
     def angular_velocity(self, time, dt):
         return torch.zeros(3, device=self.initial_pos.device)
+
+class DynamicMotion(Motion):
+    """
+    Constant linear knife motion starting from an initial position and orientation.
+    """
+
+    def __init__(self, initial_pos, linear_velocity, initial_rot=np.array([0., 0., 0., 1.]), angular_velocity=np.zeros(3), device='cuda'):
+        self.device = device
+        self.initial_pos = initial_pos
+        self.initial_rot = initial_rot
+        self.initial_linear_velocity = linear_velocity
+        self.initial_angular_velocity = angular_velocity
+        self.current_pos = None
+        self.reset()
+
+    def reset(self):
+        self.set_position(self.initial_pos)
+        self.set_rotation(self.initial_rot)
+        self.set_linear_velocity(self.initial_linear_velocity)
+        self.set_angular_velocity(self.initial_angular_velocity)
+
+    def linear_position(self, *args):
+        return self.current_pos
+
+    def angular_position(self, *args):
+        return self.current_rot
+    
+    def linear_velocity(self, *args):
+        return self.lin_vel
+
+    def angular_velocity(self, *args):
+        return self.ang_vel
+
+    def set_position(self, position):
+        self.current_pos = as_tensor(position, device=self.device, copy=True)
+
+    def set_rotation(self, rotation):
+        self.current_rot = as_tensor(rotation, device=self.device, copy=True)
+
+    def set_linear_velocity(self, lin_vel):
+        self.lin_vel = as_tensor(lin_vel, device=self.device, copy=True)
+    
+    def set_angular_velocity(self, ang_vel):
+        self.ang_vel = as_tensor(ang_vel, device=self.device, copy=True)
+
+    def update_state(self, state, time, dt):
+        self.current_pos += dt * self.lin_vel
+        self.current_rot = integrateUnitQuaternionDMM(self.current_rot, self.ang_vel, dt, device=self.device)
+
+        if time < dt * 2:
+            state.joint_q[0:3] = self.current_pos
+            state.joint_q[3:7] = self.current_rot
+
+        state.joint_qd[0:3] = self.lin_vel
+        state.joint_qd[3:6] = self.ang_vel
 
 
 class ForwardFacingMotion(FreeFloatingKnifeMotion):
