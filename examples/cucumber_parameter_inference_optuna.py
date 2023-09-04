@@ -26,6 +26,8 @@ import sys
 import os
 import optuna
 from datetime import datetime
+import pytz
+
 from tensorboardX import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(
@@ -47,13 +49,13 @@ parameters = {
 
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
 settings.sim_duration = 1.2
-settings.sim_dt = 1e-5
+settings.sim_dt = 2e-5
 settings.initial_y = 0.03 + 0.025  # center of knife + actual desired height
 settings.velocity_y = -0.020
 device = "cuda"
 learning_rate = 0.01
 
-now = datetime.now()
+now = datetime.now(pytz.timezone('Asia/Tokyo'))
 experiment_name = f"optuna_param_inference_dt{settings.sim_dt}_{now.strftime('%Y%m%d-%H%M')}"
 logger = SummaryWriter(logdir=f"log/{experiment_name}")
 
@@ -79,7 +81,7 @@ optuna_trials = 200
 def objective(trial):
 
     # Initialization
-    print(f'\n### {experiment_name}  --  trial.number {trial.number}')
+    # print(f'\n### {experiment_name}  --  trial.number {trial.number}')
 
     # Creating the optuna dict
     suggestion = {}
@@ -94,20 +96,24 @@ def objective(trial):
     sim.init_parameters(optimized_tensors)
 
     # Computing the optuna_loss function
-    hist_knife_force = sim.simulate()
-    optuna_loss = torch.square(hist_knife_force -
-                        sim.groundtruth_torch[:len(hist_knife_force)]).mean()
+    try:
+        hist_knife_force = sim.simulate()
+        optuna_loss = torch.square(hist_knife_force -
+                            sim.groundtruth_torch[:len(hist_knife_force)]).mean()
 
-    # Logging of the new values in the tensorboard summary writer
-    for name, param in sim.parameters.items():
-        logger.add_scalar(
-            f"{name}/value", param.actual_tensor_value.mean().item(), trial.number)
-        print(f'\t{name} = {param.actual_tensor_value.mean().item()}')
+        # Logging of the new values in the tensorboard summary writer
+        for name, param in sim.parameters.items():
+            logger.add_scalar(
+                f"{name}/value", param.actual_tensor_value.mean().item(), trial.number)
+            # print(f'\t{name} = {param.actual_tensor_value.mean().item()}')
 
-    logger.add_scalar("optuna_loss", optuna_loss.item(), trial.number)
-    fig = sim.plot_simulation_results()
-    fig.savefig(f"log/{experiment_name}/optuna_{trial.number}.png")
-    logger.add_figure("simulation", fig, trial.number)
+        logger.add_scalar("optuna_loss", optuna_loss.item(), trial.number)
+        fig = sim.plot_simulation_results()
+        fig.savefig(f"log/{experiment_name}/optuna_{trial.number}.png")
+        logger.add_figure("simulation", fig, trial.number)
+    except AssertionError:
+        optuna_loss = 1e3
+        print(f"NaN values found at trial {trial.number}")
 
     # Returning the value to be minimized
     return optuna_loss

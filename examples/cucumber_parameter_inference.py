@@ -25,6 +25,7 @@ import tqdm
 import sys
 import os
 from datetime import datetime
+import pytz
 from tensorboardX import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(
@@ -35,9 +36,9 @@ from disect.cutting import load_settings, ConstantLinearVelocityMotion, Paramete
 # fmt: on
 
 parameters = {
-    "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 4000),
+    "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
     "cut_spring_softness": Parameter("cut_spring_softness", 200, 10, 5000),
-    "sdf_ke": Parameter("sdf_ke", 500, 200., 4000, individual=True),
+    "sdf_ke": Parameter("sdf_ke", 500, 200., 8000, individual=True),
     "sdf_kd": Parameter("sdf_kd", 1., 0.1, 100.),
     "sdf_kf": Parameter("sdf_kf", 0.01, 0.001, 8000.0),
     "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
@@ -45,21 +46,22 @@ parameters = {
 
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
 # settings = load_settings("examples/config/ansys_sphere_apple.json")
-settings.sim_duration = 1.0
-settings.sim_dt = 1e-5
+settings.sim_duration = 1.2
+settings.sim_dt = 1e-4
+settings.sim_substeps = 200
 settings.initial_y = 0.03 + 0.025 # center of knife + actual desired height
 settings.velocity_y = -0.020
 device = "cuda"
 learning_rate = 0.01
 
-now = datetime.now()
+now = datetime.now(pytz.timezone('Asia/Tokyo'))
 experiment_name = f"param_inference_dt{settings.sim_dt}_{now.strftime('%Y%m%d-%H%M')}"
 logger = SummaryWriter(logdir=f"log/{experiment_name}")
 
 requires_grad = True
 
 sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=requires_grad,
-                 parameters=parameters)
+                 parameters=parameters, verbose=False)
 sim.motion = ConstantLinearVelocityMotion(
     initial_pos=torch.tensor([0.0, settings.initial_y, 0.0], device=device),
     linear_velocity=torch.tensor([0.0, settings.velocity_y, 0.0], device=device))
@@ -67,7 +69,7 @@ sim.motion = ConstantLinearVelocityMotion(
 sim.cut()
 
 # sim.visualize()
-optimized_parameters = torch.load(f'log/optuna_param_inference_dt1e-05_20230831-0513/best_optuna_optimized_tensors.pt')
+optimized_parameters = torch.load(f'log/param_inference_dt1e-05_20230831-1640/adam_optimized_tensors_42.pt')
 
 opt_params = sim.init_parameters(optimized_parameters)
 
@@ -115,3 +117,4 @@ for iteration in tqdm.trange(100):
                 f"{name}/grad", param.tensor.grad.mean().item(), iteration)
 
     opt.step()
+    opt.zero_grad(set_to_none=True)
