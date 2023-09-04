@@ -1023,8 +1023,7 @@ class CuttingSim:
                         f"Resampling groundtruth from dt = {groundtruth_dt} to {self.sim_coarse_dt}")
                     from scipy import signal
                     ratio = groundtruth_dt / self.sim_coarse_dt
-                    self.groundtruth = signal.resample_poly(
-                        self.groundtruth, int(10 * ratio), 10)
+                    self.groundtruth = signal.resample_poly(self.groundtruth, max(1, int(10 * ratio)), 10)
             elif groundtruth.endswith(".pkl"):
                 log = pickle.load(open(groundtruth, "rb"))
                 self.groundtruth = log["hist_knife_force"]
