@@ -20,6 +20,8 @@ from threading import Thread
 
 import numpy as np
 
+from disect.cutting import CuttingSim
+
 import pyvista as pv
 from pyvistaqt import BackgroundPlotter
 
@@ -34,7 +36,7 @@ class Visualizer:
     """
 
     def __init__(self,
-                 sim,
+                 sim: CuttingSim,
                  render_frequency=50,
                  show_static_vertices=True,
                  show_dependent_particles=True,
@@ -218,7 +220,7 @@ class Visualizer:
 
             if self.sim.model is None:
                 print("Visualizer triggered model creation because it was undefined")
-                self.sim.create_model()
+                self.sim.create_model_()
 
             self.cut_spring_indices = self.sim.model.cut_spring_indices.detach().cpu().numpy()
             self.cut_edge_indices = self.sim.model.cut_edge_indices.detach().cpu().numpy()
@@ -359,6 +361,7 @@ class Visualizer:
             self.sim.state = self.sim.model.state()
             self.start_state = self.sim.model.state()
             self.start_model = copy.copy(self.sim.model)
+            self.sim.assign_parameters()
             self.start()
 
         self.plotter.set_viewup([0., 1., 0.])
@@ -508,8 +511,7 @@ class Visualizer:
 
                     if self.coarse_sim_step % self.render_frequency == 0:
                         if hasattr(self.sim.state, 'knife_f'):
-                            knife_f = torch.sum(torch.norm(
-                                self.sim.state.knife_f.detach(), dim=1)).item()
+                            knife_f = torch.sum(torch.norm(self.sim.state.knife_f, dim=1)).item()
                             self.hist_knife_force.append(knife_f)
                         self.hist_time.append(self.sim.sim_time)
                         self.update_view()
@@ -526,6 +528,7 @@ class Visualizer:
 
     def stop(self):
         self.is_playing = False
+        self.sim.assign_parameters()
         self.sim.model = copy.copy(self.start_model)
         self.sim.state = self.sim.model.state()
         self.sim.sim_time = 0.0

@@ -169,11 +169,11 @@ class Parameter:
         if verbose:
             if self.op.ndim > 0:
                 print(
-                    f'Assigning {self.name} = [{torch.min(self.op).item()} .. {torch.max(self.op).item()}]\t (initial value: [{np.min(self.value)} .. {np.max(self.value)}], actual tensor value: [{np.min(self.actual_tensor_value)} .. {np.max(self.actual_tensor_value)}]) with dimension {dim}.'
+                    f'Assigning {self.name} = [{torch.min(self.op).item():.3f} .. {torch.max(self.op).item():.3f}]\t (initial value: [{np.min(self.value):.3f} .. {np.max(self.value):.3f}], actual tensor value: [{np.min(self.actual_tensor_value):.3f} .. {np.max(self.actual_tensor_value):.3f}]) with dimension {dim}.'
                 )
             else:
                 print(
-                    f'Assigning {self.name} = {self.op.item()}\t (initial value: {self.value}, actual tensor value: {self.actual_tensor_value}) with dimension {dim}.'
+                    f'Assigning {self.name} = {self.op.item():.3f}\t (initial value: {self.value:.3f}, actual tensor value: {self.actual_tensor_value:.3f}) with dimension {dim}.'
                 )
         if not self.individual and self.shape is not None:
             if self.tensor.ndim > 0:
