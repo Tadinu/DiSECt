@@ -44,11 +44,13 @@ class CuttingSim:
                  adapter: str = 'cuda',
                  requires_grad=True,
                  show_cutting_surface=False,
-                 verbose=True):
+                 verbose=True,
+                 allow_nans=True):
         assert isinstance(settings, dict)
         self.settings = settings
         self.adapter = adapter
         self.verbose = verbose
+        self.allow_nans = allow_nans
 
         self.dataset = dataset
         if dataset != '':
@@ -646,6 +648,8 @@ class CuttingSim:
             self.state = self.integrator.forward(
                 self.model, self.state, self.sim_dt,
                 update_mass_matrix=False)
+            if not self.allow_nans:
+                assert(not torch.isnan(self.state.cut_spring_ke).any()), f"state_in.cut_spring_ke has NaNs at time step {self.sim_step}"
             self.sim_time += self.sim_dt
             self.sim_step += 1
 
