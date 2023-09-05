@@ -11,5 +11,6 @@ from .cutting_sim import *
 from .motion import *
 from .utils import *
 from .visualizer import Visualizer
+from .ros_visualizer import ROSVisualizer
 from .settings import *
 from .urdf_loader import load_urdf
