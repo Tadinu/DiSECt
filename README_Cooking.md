@@ -24,3 +24,13 @@ https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3821342/
 100kPa +- 35kPa
 20kPa +- 14kPa for sharp tip
 http://www.international-agrophysics.org/pdf-141450-67848?filename=67848.pdf
+ https://iopscience.iop.org/article/10.1088/1755-1315/1083/1/012063/pdf
+ https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6475739/ http://www.international-agrophysics.org/Effect-of-storage-time-and-temperature-on-Poisson-ratio-of-tomato-fruit-skin,103926,0,2.html
+
+## Potato
+https://www.chemijournal.com/archives/2018/vol6issue5/PartY/6-4-755-964.pdf
+
+# Meshes scaling
+half-cylinder original 0.048 m
+Sphere original 0.051 m
+Prism original 0.050 m
