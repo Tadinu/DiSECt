@@ -185,3 +185,11 @@ def dict_to_tensor(data, parameters, size, scalar_values, device, requires_grad)
                 opt_tensor = torch.tensor(value, device=device, dtype=torch.float32, requires_grad=requires_grad)
             optimized_tensors.update({param: opt_tensor})
     return optimized_tensors
+
+
+def resample(data, hz_in, hz_out):
+    import scipy.signal
+    import math
+    secs = len(data)/hz_in # Number of seconds in signal X
+    samps = math.ceil(secs*hz_out) # Number of samples to downsample
+    return scipy.signal.resample(data, samps)

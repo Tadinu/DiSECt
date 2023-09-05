@@ -10,6 +10,7 @@
 # fmt: off
 import torch
 import copy
+from math import ceil
 import pickle
 import os
 import sys
@@ -116,16 +117,14 @@ class CuttingSim:
 
         self.show_cutting_surface = show_cutting_surface
 
-        self.progress_bar_fn = lambda *args: tqdm(
-            *args, desc=self.experiment_name)
+        self.progress_bar_fn = lambda *args: tqdm(*args, desc=self.experiment_name)
         self.requires_grad = requires_grad
         if not requires_grad:
             self.disable_gradients()
         else:
             self.enable_gradiants()
 
-        self.settings["mu"], self.settings["lambda"] = convert_lame(
-            young=settings.young, poisson=settings.poisson)
+        self.settings["mu"], self.settings["lambda"] = convert_lame(young=settings.young, poisson=settings.poisson)
 
         print(
             f"Converted Young's modulus {settings.young} and Poisson's ratio {settings.poisson} to Lame parameters mu = {self.settings['mu']} and lambda = {self.settings['lambda']}"
@@ -1055,22 +1054,20 @@ class CuttingSim:
             if groundtruth.endswith(".npy"):
                 self.groundtruth = np.load(groundtruth)
                 if groundtruth_dt is not None and groundtruth_dt != self.sim_coarse_dt:
-                    print(
-                        f"Resampling groundtruth from dt = {groundtruth_dt} to {self.sim_coarse_dt}")
+                    print(f"Resampling groundtruth from dt = {groundtruth_dt} to {self.sim_coarse_dt}")
                     from scipy import signal
-                    ratio = groundtruth_dt / self.sim_coarse_dt
-                    self.groundtruth = signal.resample_poly(self.groundtruth, max(1, int(10 * ratio)), 10)
+                    sim_hz = ceil(1./ self.sim_coarse_dt)
+                    groundtruth_hz = ceil(1. / groundtruth_dt)
+                    self.groundtruth = resample(self.groundtruth, groundtruth_hz, sim_hz)
             elif groundtruth.endswith(".pkl"):
                 log = pickle.load(open(groundtruth, "rb"))
                 self.groundtruth = log["hist_knife_force"]
                 groundtruth_dt = log["settings"]["sim_dt"]
                 if groundtruth_dt != self.sim_coarse_dt:
-                    print(
-                        f"Resampling groundtruth from dt = {groundtruth_dt} to {self.sim_coarse_dt}")
+                    print(f"Resampling groundtruth from dt = {groundtruth_dt} to {self.sim_coarse_dt}")
                     from scipy import signal
                     ratio = groundtruth_dt / self.sim_coarse_dt
-                    self.groundtruth = signal.resample_poly(
-                        self.groundtruth, int(10 * ratio), 10)
+                    self.groundtruth = signal.resample_poly(self.groundtruth, int(10 * ratio), 10)
             elif groundtruth.endswith("resultant_force_xyz.csv"):
                 from scipy import signal
                 # ANSYS force file
