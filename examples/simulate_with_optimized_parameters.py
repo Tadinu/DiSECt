@@ -31,13 +31,17 @@ parameters = {
     "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
 }
 
-settings = load_settings("examples/config/cooking/ansys_cucumber.json")
-# settings = load_settings("examples/config/cooking/training_real_cucumber.json")
+# settings = load_settings("examples/config/cooking/ansys_cucumber.json")
+# veggie_height = 0.028
+# settings = load_settings("examples/config/cooking/ansys_potato.json")
+# veggie_height = 0.041
+settings = load_settings("examples/config/cooking/ansys_tomato.json")
+veggie_height = 0.049
 
-settings.sim_duration = 1.3
+settings.sim_duration = 0.1
 settings.sim_dt = 2e-5
 settings.sim_substeps = 500
-settings.initial_y = 0.02 + 0.027  # center of knife + actual desired height
+settings.initial_y = 59.e-3/2. + veggie_height  # center of knife + actual desired height
 settings.velocity_y = -0.020
 device = "cuda"
 requires_grad = False

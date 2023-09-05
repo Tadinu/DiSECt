@@ -48,16 +48,16 @@ parameters = {
     "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0, individual=True),
 }
 
-settings = load_settings("examples/config/cooking/ansys_cucumber.json")
-settings.sim_duration = 1.3
+settings = load_settings("examples/config/cooking/ansys_potato.json")
+settings.sim_duration = 2.0
 settings.sim_dt = 2e-5
-settings.initial_y = 0.02 + 0.027  # center of knife + actual desired height
+settings.initial_y = 0.059/2. + settings.veggie_height + 0.001  # center of knife + actual desired height
 settings.velocity_y = -0.020
 device = "cuda"
 learning_rate = 0.01
 
 now = datetime.now(pytz.timezone('Asia/Tokyo'))
-experiment_name = f"optuna_param_inference_dt{settings.sim_dt}_{now.strftime('%Y%m%d-%H%M')}"
+experiment_name = f"optuna_potato_param_inference_dt{settings.sim_dt}_{now.strftime('%Y%m%d-%H%M')}"
 logger = SummaryWriter(logdir=f"log/{experiment_name}")
 
 requires_grad = False
@@ -70,11 +70,14 @@ sim.motion = ConstantLinearVelocityMotion(
 
 sim.cut()
 
-sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=0.002)
+sim.load_groundtruth('osx_dataset/calibrated/potato_01.npy', groundtruth_dt=0.002)
 
 ###########################
 ### Optuna Optimization ###
 ###########################
+
+os.makedirs(f"log/{experiment_name}/plots")
+os.makedirs(f"log/{experiment_name}/params")
 
 optuna_trials = 200
 
@@ -95,21 +98,26 @@ def objective(trial):
     # Computing the optuna_loss function
     try:
         hist_knife_force = sim.simulate()
-        optuna_loss = torch.square(hist_knife_force -
-                            sim.groundtruth_torch[:len(hist_knife_force)]).mean()
+        ## L2 loss
+        optuna_loss = torch.square(hist_knife_force - sim.groundtruth_torch[:len(hist_knife_force)]).mean()
+        ## L1 loss
+        # optuna_loss = torch.abs(hist_knife_force - sim.groundtruth_torch[:len(hist_knife_force)]).mean()
+        
+        # Save improments
+        optuna_results = f"log/{experiment_name}/params/optuna_params_{trial.number:03}.pkl"
+        pickle.dump(suggestion, open(optuna_results, "wb"))
 
         # Logging of the new values in the tensorboard summary writer
         for name, param in sim.parameters.items():
-            logger.add_scalar(
-                f"{name}/value", param.actual_tensor_value.mean().item(), trial.number)
-            # print(f'\t{name} = {param.actual_tensor_value.mean().item()}')
+            logger.add_scalar(f"{name}/value", param.actual_tensor_value.mean().item(), trial.number)
 
         logger.add_scalar("optuna_loss", optuna_loss.item(), trial.number)
         fig = sim.plot_simulation_results()
-        fig.savefig(f"log/{experiment_name}/optuna_{trial.number}.png")
+        fig.savefig(f"log/{experiment_name}/plots/optuna_{trial.number}.png")
         logger.add_figure("simulation", fig, trial.number)
+
     except AssertionError:
-        optuna_loss = 1e3
+        optuna_loss = 1e8
         print(f"NaN values found at trial {trial.number}")
 
     # Returning the value to be minimized
