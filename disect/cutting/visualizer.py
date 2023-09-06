@@ -380,8 +380,8 @@ class Visualizer:
 
             self.sim.state = self.sim.model.state()
             self.start_state = self.sim.model.state()
-            self.start_model = copy.copy(self.sim.model)
             self.sim.assign_parameters()
+            self.start_model = copy.copy(self.sim.model)
             self.start()
 
         self.plotter.set_viewup([0., 1., 0.])
@@ -560,15 +560,19 @@ class Visualizer:
         for _ in range(self.skip_steps + 1):
             self.sim.simulation_step()
             self.sim_step += 1
+        if self.coarse_sim_step % self.render_frequency == 0:
+            if hasattr(self.sim.state, 'knife_f'):
+                knife_f = torch.sum(torch.norm(self.sim.state.knife_f, dim=1)).item()
+                self.hist_knife_force.append(knife_f)
+            self.hist_time.append(self.sim.sim_time)
         self.update_view()
+        self.coarse_sim_step += 1
 
     def stop(self):
         self.is_playing = False
         self.sim.motion.reset()
-        print(self.sim.motion.linear_position(0,0))
         self.sim.model = copy.copy(self.start_model)
         self.sim.state = self.sim.model.state()
-        self.sim.assign_parameters()
         self.sim.sim_time = 0.0
         self.sim_step = 0
         self.hist_knife_force = []
