@@ -46,7 +46,8 @@ class CuttingSim:
                  requires_grad=True,
                  show_cutting_surface=False,
                  verbose=True,
-                 allow_nans=True):
+                 allow_nans=True,
+                 root_directory=''):
         assert isinstance(settings, dict)
         self.settings = settings
         self.adapter = adapter
@@ -93,7 +94,8 @@ class CuttingSim:
         self.experiment_name = experiment_name
 
         self.motion = DynamicMotion(initial_pos=torch.tensor([0., self.settings.initial_y, 0.], device=self.adapter),
-                                    linear_velocity=torch.tensor([0., self.settings.velocity_y, 0.], device=self.adapter))
+                                    linear_velocity=torch.tensor([0., self.settings.velocity_y, 0.], device=self.adapter),
+                                    required_grad=requires_grad)
 
         # default knife type
         if self.settings.knife_type.lower() == "ybj":
@@ -130,18 +132,14 @@ class CuttingSim:
             f"Converted Young's modulus {settings.young} and Poisson's ratio {settings.poisson} to Lame parameters mu = {self.settings['mu']} and lambda = {self.settings['lambda']}"
         )
 
-        object_rotation = df.quat_from_axis_angle(
-            settings.geometry.rotation[:3], settings.geometry.rotation[3])
+        object_rotation = df.quat_from_axis_angle(settings.geometry.rotation[:3], settings.geometry.rotation[3])
         if settings.generator in ("ansys", "meshio"):
             if settings.generator == "ansys":
-                indices, vertices = load_ansys_mesh(
-                    settings.generators.ansys.filename)
+                indices, vertices = load_ansys_mesh(root_directory+settings.generators.ansys.filename)
             else:
-                indices, vertices = load_mesh(
-                    settings.generators.meshio.filename)
+                indices, vertices = load_mesh(root_directory+settings.generators.meshio.filename)
 
-            print(
-                f"Loaded mesh with {np.shape(vertices)[0]} vertices and {len(indices)//4} tets.")
+            print(f"Loaded mesh with {np.shape(vertices)[0]} vertices and {len(indices)//4} tets.")
 
             # center mesh along z
             size_z = np.max(vertices[:, 2]) - np.min(vertices[:, 2])
@@ -713,14 +711,12 @@ class CuttingSim:
                 renderer.update(self.state, self.sim_time)
 
             self.hist_time.append(self.sim_time)
-            self.hist_cut_stiffness_min.append(
-                torch.min(self.state.cut_spring_ke).item())
-            self.hist_cut_stiffness_max.append(
-                torch.max(self.state.cut_spring_ke).item())
-            self.hist_cut_stiffness_mean.append(
-                torch.mean(self.state.cut_spring_ke).item())
+            self.hist_cut_stiffness_min.append(torch.min(self.state.cut_spring_ke).item())
+            self.hist_cut_stiffness_max.append(torch.max(self.state.cut_spring_ke).item())
+            self.hist_cut_stiffness_mean.append(torch.mean(self.state.cut_spring_ke).item())
 
             knife_f = torch.sum(torch.norm(self.state.knife_f, dim=1))
+            # print("knife f sum", torch.sum(self.state.knife_f, dim=0))
             assert (not np.isnan(knife_f.item(
             ))), f"Knife force is NaN at step {step}/{self.sim_coarse_steps} (time: {self.sim_time:.3f}s)"
 
@@ -1118,6 +1114,16 @@ class CuttingSim:
         from PyQt5 import Qt
         app = Qt.QApplication(sys.argv)
         _ = Visualizer(self, skip_steps=skip_steps, **kwargs)
+        sys.exit(app.exec_())
+
+    def ros_visualizer(self):
+        """
+        Creates an interactive visualizer and runs the simulation.
+        """
+        from disect.cutting import ROSVisualizer
+        from PyQt5 import Qt
+        app = Qt.QApplication(sys.argv)
+        _ = ROSVisualizer(self, skip_steps=10)
         sys.exit(app.exec_())
 
     def save_optimized_parameters(self, filename):
