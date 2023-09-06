@@ -106,13 +106,15 @@ class DynamicMotion(Motion):
     Constant linear knife motion starting from an initial position and orientation.
     """
 
-    def __init__(self, initial_pos, linear_velocity, initial_rot=np.array([0., 0., 0., 1.]), angular_velocity=np.zeros(3), device='cuda'):
+    def __init__(self, initial_pos, linear_velocity, initial_rot=np.array([0., 0., 0., 1.]), 
+                 angular_velocity=np.zeros(3), device='cuda', required_grad=True):
         self.device = device
         self.initial_pos = initial_pos
         self.initial_rot = initial_rot
         self.initial_linear_velocity = linear_velocity
         self.initial_angular_velocity = angular_velocity
         self.current_pos = None
+        self.required_grad = required_grad
         self.reset()
 
     def reset(self):
@@ -134,16 +136,16 @@ class DynamicMotion(Motion):
         return self.ang_vel
 
     def set_position(self, position):
-        self.current_pos = as_tensor(position, device=self.device, copy=True)
+        self.current_pos = as_tensor(position, device=self.device, copy=True, requires_grad=self.required_grad)
 
     def set_rotation(self, rotation):
-        self.current_rot = as_tensor(rotation, device=self.device, copy=True)
+        self.current_rot = as_tensor(rotation, device=self.device, copy=True, requires_grad=self.required_grad)
 
     def set_linear_velocity(self, lin_vel):
-        self.lin_vel = as_tensor(lin_vel, device=self.device, copy=True)
+        self.lin_vel = as_tensor(lin_vel, device=self.device, copy=True, requires_grad=self.required_grad)
     
     def set_angular_velocity(self, ang_vel):
-        self.ang_vel = as_tensor(ang_vel, device=self.device, copy=True)
+        self.ang_vel = as_tensor(ang_vel, device=self.device, copy=True, requires_grad=self.required_grad)
 
     def update_state(self, state, time, dt):
         self.current_pos += dt * self.lin_vel
