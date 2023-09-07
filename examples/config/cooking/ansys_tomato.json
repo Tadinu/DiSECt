@@ -5,10 +5,10 @@
     "sim_substeps": 500,
     "sim_dt": 2e-05,
     "ground": true,
-    "ground_ke": 5000.0,
+    "ground_ke": 1000.0,
     "ground_kd": 0.0,
-    "ground_kf": 5000.0,
-    "ground_mu": 0.5,
+    "ground_kf": 1000.0,
+    "ground_mu": 0.2,
     "ground_radius": 0.001,
     "generator": "ansys",
     "generators": {
@@ -29,7 +29,7 @@
     },
     "mu": 15384.615384615385,
     "lambda": 23076.923076923074,
-    "young": 40000.0,
+    "young": 400000.0,
     "poisson": 0.3,
     "density": 470.0,
     "minimum_particle_mass": 0.0,
@@ -76,7 +76,7 @@
                 ],
                 "max": [
                     100.0,
-                    -0.002,
+                    0.002,
                     100.0
                 ]
             }
@@ -127,5 +127,8 @@
         "active": true,
         "mode": "fem"
     },
+    "veggie": "tomato",
+    "groundtruth": "/root/o2ac-ur/DiSECt2/osx_dataset/calibrated/tomato_01.npy",
+    "groundtruth_dt": 0.002,
     "veggie_height": 0.048
 }

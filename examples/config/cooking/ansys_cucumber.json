@@ -5,10 +5,10 @@
     "sim_substeps": 500,
     "sim_dt": 2e-05,
     "ground": true,
-    "ground_ke": 5000.0,
+    "ground_ke": 1000.0,
     "ground_kd": 0.0,
-    "ground_kf": 5000.0,
-    "ground_mu": 0.5,
+    "ground_kf": 1000.0,
+    "ground_mu": 0.2,
     "ground_radius": 0.001,
     "generator": "ansys",
     "generators": {
@@ -27,9 +27,9 @@
             "cell_z": 0.006
         }
     },
-    "mu": 94890.5109489051,
-    "lambda": 270072.9927007299,
-    "young": 260000.0,
+    "mu": 948905.109489051,
+    "lambda": 2700729.927007299,
+    "young": 2600000.0,
     "poisson": 0.37,
     "density": 950.0,
     "minimum_particle_mass": 0.0,
@@ -76,7 +76,7 @@
                 ],
                 "max": [
                     100.0,
-                    -0.002,
+                    0.002,
                     100.0
                 ]
             }
@@ -127,5 +127,8 @@
         "active": true,
         "mode": "fem"
     },
+    "veggie": "cucumber",
+    "groundtruth": "/root/o2ac-ur/DiSECt2/osx_dataset/calibrated/cucumber_3_05.npy",
+    "groundtruth_dt": 0.002,
     "veggie_height": 0.027
 }

@@ -646,7 +646,7 @@ class CuttingSim:
                 self.model, self.state, self.sim_dt,
                 update_mass_matrix=False)
             if not self.allow_nans:
-                assert(not torch.isnan(self.state.cut_spring_ke).any()), f"state_in.cut_spring_ke has NaNs at time step {self.sim_step}"
+                assert(not torch.isnan(self.state.cut_spring_ke).any()), f"state.cut_spring_ke has NaNs at time step {self.sim_step}"
             self.sim_time += self.sim_dt
             self.sim_step += 1
 

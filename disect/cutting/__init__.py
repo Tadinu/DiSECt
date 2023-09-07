@@ -14,3 +14,5 @@ from .visualizer import Visualizer
 from .ros_visualizer import ROSVisualizer
 from .settings import *
 from .urdf_loader import load_urdf
+from .initialize_logger import initialize_logger
+from .parameter_inference import *
