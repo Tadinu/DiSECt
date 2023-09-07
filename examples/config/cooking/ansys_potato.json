@@ -128,7 +128,7 @@
         "mode": "fem"
     },
     "veggie": "potato",
-    "groundtruth": "/root/o2ac-ur/DiSECt2/osx_dataset/calibrated/potato_01.npy",
+    "groundtruth": "/root/o2ac-ur/disect/osx_dataset/calibrated/potato_01.npy",
     "groundtruth_dt": 0.002,
     "veggie_height": 0.04
 }

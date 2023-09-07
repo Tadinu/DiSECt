@@ -62,7 +62,7 @@ sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=
 
 # Load optimized/pretrained parameters
 # pretrained_params = 'log/optuna_cucumber_param_inference_dt2e-05_20230904-1342/best_optuna_optimized_tensors.pkl'
-pretrained_params = '/root/o2ac-ur/DiSECt2/log/optuna_cucumber_param_inference_dt2e-05_20230905-1824/best_optuna_optimized_tensors.pkl'
+pretrained_params = '/root/o2ac-ur/disect/log/optuna_cucumber_param_inference_dt2e-05_20230905-1824/best_optuna_optimized_tensors.pkl'
 
 sim.load_optimized_parameters(pretrained_params, verbose=True)
 
