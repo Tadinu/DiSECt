@@ -3,6 +3,7 @@ from disect.cutting.motion import ConstantLinearVelocityMotion
 from disect.cutting.settings import Parameter
 import optuna
 import torch
+from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import pickle
 
 import tqdm
@@ -20,7 +21,7 @@ def create_sim(settings, experiment_name, verbose=False, requires_grad=False, be
 
     if best_params:
         for key, value in best_params.items():
-            constrain = parameters[key].range * 0.10
+            constrain = parameters[key].range * 0.25
             parameters[key].low = max(value - constrain, parameters[key].low)
             parameters[key].high = min(value + constrain, parameters[key].high)
             parameters[key].set_value(value)
@@ -94,11 +95,13 @@ def optuna_trainer(sim, parameters, logger, n_trials=100):
 
 def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None):
 
+
     if previous_best:
         sim.load_optimized_parameters(previous_best)
     opt_params = sim.init_parameters()
 
     opt = torch.optim.Adam(opt_params, lr=learning_rate)
+    scheduler = StepLR(opt, step_size=int(iterations/4.), gamma=0.1)
 
     for iteration in tqdm.trange(iterations):
         sim.motion = ConstantLinearVelocityMotion(initial_pos=torch.tensor([0.0, sim.settings.initial_y, 0.0], device=sim.adapter),
@@ -108,7 +111,7 @@ def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None)
 
         hist_knife_force = sim.simulate()
 
-        sim.save_optimized_parameters(f"log/{sim.experiment_name}/adam_optimized_tensors_{iteration}.pt")
+        sim.save_optimized_parameters(f"log/{sim.experiment_name}/params/adam_optimized_tensors_{iteration}.pt")
 
         loss = torch.square(hist_knife_force - sim.groundtruth_torch[:len(hist_knife_force)]).mean()
         print("Loss:", loss.item())
@@ -119,7 +122,7 @@ def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None)
         logger.add_scalar("loss", loss.item(), iteration)
 
         fig = sim.plot_simulation_results()
-        fig.savefig(f"log/{sim.experiment_name}/adam_{iteration}.png")
+        fig.savefig(f"log/{sim.experiment_name}/plots/adam_{iteration}.png")
         logger.add_figure("simulation", fig, iteration)
         opt.zero_grad()
         loss.backward(retain_graph=False)
@@ -133,3 +136,4 @@ def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None)
                     f"{name}/grad", param.tensor.grad.mean().item(), iteration)
 
         opt.step()
+        scheduler.step()
