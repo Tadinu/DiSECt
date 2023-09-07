@@ -151,9 +151,9 @@ class DynamicMotion(Motion):
         self.current_pos += dt * self.lin_vel
         self.current_rot = integrateUnitQuaternionDMM(self.current_rot, self.ang_vel, dt, device=self.device)
 
-        if time < dt * 2:
-            state.joint_q[0:3] = self.current_pos
-            state.joint_q[3:7] = self.current_rot
+        # if time < dt * 2:
+        state.joint_q[0:3] = self.current_pos
+        state.joint_q[3:7] = self.current_rot
 
         state.joint_qd[0:3] = self.lin_vel
         state.joint_qd[3:6] = self.ang_vel
