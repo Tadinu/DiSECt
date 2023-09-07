@@ -28,12 +28,12 @@ import pickle
 
 from tensorboardX import SummaryWriter
 
-from disect.cutting import load_settings, optuna_trainer, adam_trainer, create_sim
+from disect.cutting import load_settings, save_settings, optuna_trainer, adam_trainer, create_sim
 # fmt: on
 
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
 
-settings.sim_duration = 0.4
+# settings.sim_duration = 0.4
 settings.sim_dt = 2e-5
 settings.initial_y = 0.059/2. + settings.veggie_height + 0.001  # center of knife + actual desired height
 settings.velocity_y = -0.020
@@ -48,12 +48,13 @@ optuna_results = '/root/o2ac-ur/disect/log/20230907-1049_optuna_cucumber_param_i
 best_params = pickle.load(open(optuna_results, 'rb'))
 print("best params", best_params)
 
+save_settings(settings, f"log/{experiment_name}/settings.json")
+
+os.makedirs(f"log/{experiment_name}/plots")
+os.makedirs(f"log/{experiment_name}/params")
 ###########################
 ### Optuna Optimization ###
 ###########################
-
-# os.makedirs(f"log/{experiment_name}/plots")
-# os.makedirs(f"log/{experiment_name}/params")
 
 # sim, parameters = create_sim(settings, experiment_name, requires_grad=False, best_params=best_params, device=device, verbose=False)
 # best_params = optuna_trainer(sim, parameters, logger, n_trials=300)
@@ -68,8 +69,9 @@ print("best params", best_params)
 ### Adam Optimization ###
 #########################
 
-learning_rate = 0.01
+learning_rate = 1.0
 settings.sim_dt = 1e-5 # smaller dt is less likely to crash (Nans)
+
 
 sim, parameters = create_sim(settings, experiment_name, requires_grad=True, best_params=best_params, device=device, verbose=True)
 
