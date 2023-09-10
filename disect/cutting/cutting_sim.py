@@ -1054,7 +1054,9 @@ class CuttingSim:
                     from scipy import signal
                     sim_hz = ceil(1./ self.sim_coarse_dt)
                     groundtruth_hz = ceil(1. / groundtruth_dt)
-                    self.groundtruth = resample(self.groundtruth, groundtruth_hz, sim_hz)
+                    # self.groundtruth = resample(self.groundtruth, groundtruth_hz, sim_hz)
+                    interpolator = interp1d(np.linspace(0, self.groundtruth.shape[0]*0.002, self.groundtruth.shape[0]), self.groundtruth)
+                    self.groundtruth = interpolator(np.arange(0.0, self.groundtruth.shape[0]*0.002, self.sim_coarse_dt))
             elif groundtruth.endswith(".pkl"):
                 log = pickle.load(open(groundtruth, "rb"))
                 self.groundtruth = log["hist_knife_force"]
