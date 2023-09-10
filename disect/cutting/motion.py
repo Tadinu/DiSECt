@@ -89,6 +89,9 @@ class ConstantLinearVelocityMotion(FreeFloatingKnifeMotion):
         self.initial_rot = as_tensor(initial_rot, device=self.initial_pos.device)
         self.device = device
 
+    def set_position(self, position):
+        self.initial_pos = as_tensor(position, device=self.device)
+
     def linear_position(self, time, dt):
         return self.initial_pos + time * self.lin_vel
 

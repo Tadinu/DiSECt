@@ -557,12 +557,10 @@ class CuttingSim:
         Assigns simulation parameters that may be optimized from roll-outs of the differentiable simulator.
         """
         if "initial_y" in self.parameters:
-            assert type(
-                self.motion) == ConstantLinearVelocityMotion, "Knife motion must be of type ConstantLinearVelocityMotion to infer 'initial_y' parameter."
+            assert isinstance(self.motion, (ConstantLinearVelocityMotion, DynamicMotion)), "Knife motion must be of type ConstantLinearVelocityMotion/DynamicMotion to infer 'initial_y' parameter."
             self.motion.initial_pos[1] = self.parameters["initial_y"].assignable_tensor(self.verbose)
         if "velocity_y" in self.parameters:
-            assert type(
-                self.motion) == ConstantLinearVelocityMotion, "Knife motion must be of type ConstantLinearVelocityMotion to infer 'velocity_y' parameter."
+            assert isinstance(self.motion, (ConstantLinearVelocityMotion, DynamicMotion)), "Knife motion must be of type ConstantLinearVelocityMotion to infer 'velocity_y' parameter."
             self.motion.lin_vel[1] = self.parameters["velocity_y"].assignable_tensor(self.verbose)
         if "cut_spring_ke" in self.parameters:
             self.state.cut_spring_ke = self.parameters["cut_spring_ke"].assignable_tensor(self.verbose)
@@ -1007,7 +1005,7 @@ class CuttingSim:
         plt.tight_layout()
         return fig
 
-    def load_optimized_parameters(self, filename=None, optimized_params=None, verbose=False):
+    def load_optimized_parameters(self, filename=None, optimized_params=None, verbose=False, update_initial_y=False):
         scalar_values = ['initial_y']
         self.optimized_tensors = {}
         num_cut_springs = len(self.model.cut_spring_indices)
@@ -1018,11 +1016,16 @@ class CuttingSim:
                     print("Pretrained params", data)
                 for param, value in data.items():
                     if param in self.parameters.keys():
-                        if num_cut_springs > value.shape[0]:
-                            opt_tensor = torch.cat((value, torch.ones(num_cut_springs-value.shape[0], device=self.adapter)*torch.min(value)), dim=0)
+                        if value.ndim > 0:
+                            if num_cut_springs > value.shape[0]:
+                                opt_tensor = torch.cat((value, torch.ones(num_cut_springs-value.shape[0], device=self.adapter)*torch.min(value)), dim=0)
+                            else:
+                                opt_tensor = value[:num_cut_springs]
                         else:
-                            opt_tensor = value[:num_cut_springs]
+                            opt_tensor = value
                         self.optimized_tensors.update({param: opt_tensor})
+                    elif update_initial_y and param == 'initial_y':
+                        self.motion.set_position([0., value.item(), 0.])
             elif filename.endswith('.pkl'):
                 data = pickle.load(open(filename, 'rb'))
                 if verbose:
@@ -1034,6 +1037,8 @@ class CuttingSim:
                         else:
                             opt_tensor = torch.tensor(value, device=self.adapter, dtype=torch.float32, requires_grad=self.requires_grad)
                         self.optimized_tensors.update({param: opt_tensor})
+                    elif update_initial_y and param == 'initial_y':
+                        self.motion.set_position([0., value, 0.])
             else:
                 raise ValueError("Unsupported file extension")
         
