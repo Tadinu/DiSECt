@@ -1967,19 +1967,20 @@ def check_adapter(l, a):
 
     for t in l:
         if torch.is_tensor(t):
-            assert(t.device.type == a)
+            assert(t.device.type == a), f"Expected {a} but found {t.device.type}"
 
 
-def check_finite(l):
+def check_finite(l, label=''):
     for t in l:
         if torch.is_tensor(t):
             assert(t.is_contiguous())
 
-            if (torch.isnan(t).any() == True):
+            if (torch.isnan(t).any() == True or torch.isinf(t).any() == True):
                 print(t)
-            assert(torch.isnan(t).any() == False)
+            assert(torch.isinf(t).any() == False), f"tensor in {label} has Infs"
+            assert(torch.isnan(t).any() == False), f"tensor in {label} has Nans"
         else:
-            assert(math.isnan(t) == False)
+            assert(math.isnan(t) == False), f"non-tensor in {label} has Nans"
 
 
 def filter_grads(grads):
@@ -2198,8 +2199,8 @@ class Tape:
             if dflex.config.verify_fp:
                 check_adapter(inputs, adapter)
                 check_adapter(outputs, adapter)
-                check_finite(inputs)
-                check_finite(outputs)
+                check_finite(inputs, f'inputs for {func.func.__name__}')
+                check_finite(outputs, f'outputs for {func.func.__name__}')
 
             # record launch
             if dflex.config.no_grad == False:
@@ -2262,8 +2263,8 @@ class Tape:
             if dflex.config.verify_fp:
                 check_finite(inputs)
                 check_finite(outputs)
-                check_finite(adj_inputs)
-                check_finite(adj_outputs)
+                check_finite(adj_inputs, f'inputs for {func.func.__name__} with dim {dim}')
+                check_finite(adj_outputs, f'outputs for {func.func.__name__} with dim {dim}')
 
             #print("Replay: func: {}\ndim: {}\ninputs: {}\noutputs: {}\nadj_inputs: {}\nadj_outputs: {}".format(func.func.__name__, dim, inputs, outputs, adj_inputs, adj_outputs, adapter))
 
