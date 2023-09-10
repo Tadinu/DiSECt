@@ -5,23 +5,31 @@ import optuna
 import torch
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import pickle
-
+import timeit
 import tqdm
 
-def create_sim(settings, experiment_name, verbose=False, requires_grad=False, best_params={}, device='cuda'):
+def create_sim(settings, experiment_name, verbose=False, requires_grad=False, best_params={}, device='cuda', shared_params=False):
     parameters = {
-        # "initial_y": Parameter("initial_y", 0.055, 0.055, 0.07),
+        "initial_y": Parameter("initial_y", settings.initial_y, settings.initial_y - 0.005, settings.initial_y + 0.01),
         "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
         "cut_spring_softness": Parameter("cut_spring_softness", 200, 10, 5000),
+        # "cut_spring_kd": Parameter("cut_spring_kd", 0.1, 0.01, 0.15),
         "sdf_ke": Parameter("sdf_ke", 500, 200., 8000, individual=True),
         "sdf_kd": Parameter("sdf_kd", 1., 0.1, 100., individual=True),
         "sdf_kf": Parameter("sdf_kf", 0.01, 0.001, 8000.0, individual=True),
         "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0, individual=True),
+        # "damping": Parameter("damping", 1., 0.1, 10., individual=True),
+        # "density": Parameter("density", 700, 500., 1000., individual=True),
     }
+    print("Parameters:", parameters)
+
+    if shared_params:
+        for p in parameters.values():
+            p.individual = False
 
     if best_params:
         for key, value in best_params.items():
-            constrain = parameters[key].range * 0.25
+            constrain = parameters[key].range * 0.10
             parameters[key].low = max(value - constrain, parameters[key].low)
             parameters[key].high = min(value + constrain, parameters[key].high)
             parameters[key].set_value(value)
@@ -40,11 +48,11 @@ def create_sim(settings, experiment_name, verbose=False, requires_grad=False, be
     return sim, parameters
 
 def optuna_trainer(sim, parameters, logger, n_trials=100):
-
+    global best_loss
     best_loss = 1e8
 
     def objective(trial):
-
+        global best_loss
         # Creating the optuna dict
         suggestion = {}
         for name, param in parameters.items():
@@ -78,8 +86,8 @@ def optuna_trainer(sim, parameters, logger, n_trials=100):
                 best_loss = optuna_loss
 
         except AssertionError:
-            optuna_loss = 1e8
-            print(f"NaN values found at trial {trial.number}")
+            optuna_loss = 1e5 + (1 - (sim.sim_time/sim.sim_duration)) * 1e5
+            print(f"NaN values found at trial {trial.number} num of timesteps {sim.sim_time}")
 
         # Returning the value to be minimized
         return optuna_loss
@@ -89,12 +97,10 @@ def optuna_trainer(sim, parameters, logger, n_trials=100):
     # sampler=optuna.samplers.CmaEsSampler()
     study = optuna.create_study(direction="minimize", sampler=sampler)
     study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
-
     return study.best_params
 
 
 def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None):
-
 
     if previous_best:
         sim.load_optimized_parameters(previous_best)
@@ -130,10 +136,10 @@ def adam_trainer(sim, logger, learning_rate, iterations=100, previous_best=None)
             if param.tensor.grad is None:
                 print(f'\t{name} = {param.actual_tensor_value.mean().item()} \t\tgrad N/A!')
                 print(f"Iteration {iteration}: {name} has no gradient!")
+                return
             else:
                 print(f'\t{name} = {param.actual_tensor_value.mean().item()} \t\tgrad = {param.tensor.grad.mean().item()}')
-                logger.add_scalar(
-                    f"{name}/grad", param.tensor.grad.mean().item(), iteration)
+                logger.add_scalar(f"{name}/grad", param.tensor.grad.mean().item(), iteration)
 
         opt.step()
         scheduler.step()

@@ -20,7 +20,9 @@ reduce in further updates of our simulator.
 
 # fmt: off
 import torch
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(False, check_nan=True)
+torch.set_printoptions(threshold=10000)
+
 import os
 from datetime import datetime
 import pytz
@@ -33,18 +35,20 @@ from disect.cutting import load_settings, save_settings, optuna_trainer, adam_tr
 
 settings = load_settings("examples/config/cooking/ansys_cucumber.json")
 
-# settings.sim_duration = 0.4
-settings.sim_dt = 2e-5
+# settings.sim_duration = 1.3
+settings.sim_dt = 3e-5
 settings.initial_y = 0.059/2. + settings.veggie_height + 0.001  # center of knife + actual desired height
 settings.velocity_y = -0.020
 now = datetime.now(pytz.timezone('Asia/Tokyo'))
-experiment_name = f"{now.strftime('%Y%m%d-%H%M')}_optuna_{settings.veggie}_param_inference_dt{settings.sim_dt}"
+experiment_name = f"{now.strftime('%Y%m%d-%H%M%S')}_optuna_{settings.veggie}_param_inference_dt{settings.sim_dt}"
 logger = SummaryWriter(logdir=f"log/{experiment_name}")
 device = 'cuda'
 optuna_results = None
 best_params = None
 
-optuna_results = '/root/o2ac-ur/disect/log/20230907-1049_optuna_cucumber_param_inference_dt2e-05/best_optuna_optimized_tensors.pkl'
+optuna_opt = False
+
+optuna_results = '/root/o2ac-ur/disect/log/best_results/20230908-131328_optuna_cucumber_param_inference_dt3e-05/best_optuna_optimized_tensors.pkl'
 best_params = pickle.load(open(optuna_results, 'rb'))
 print("best params", best_params)
 
@@ -55,23 +59,23 @@ os.makedirs(f"log/{experiment_name}/params")
 ###########################
 ### Optuna Optimization ###
 ###########################
+if optuna_opt:
+    sim, parameters = create_sim(settings, experiment_name, requires_grad=False,
+                                best_params=best_params, device=device, verbose=False, shared_params=True)
+    best_params = optuna_trainer(sim, parameters, logger, n_trials=500)
 
-# sim, parameters = create_sim(settings, experiment_name, requires_grad=False, best_params=best_params, device=device, verbose=False)
-# best_params = optuna_trainer(sim, parameters, logger, n_trials=300)
+    # Display the information regarding the best trial
+    print("Best trial:", best_params)
 
-# # Display the information regarding the best trial
-# print("Best trial:", best_params)
-
-# optuna_results = f"log/{experiment_name}/best_optuna_optimized_tensors.pkl"
-# pickle.dump(best_params, open(optuna_results, "wb"))
+    optuna_results = f"log/{experiment_name}/best_optuna_optimized_tensors.pkl"
+    pickle.dump(best_params, open(optuna_results, "wb"))
 
 #########################
 ### Adam Optimization ###
 #########################
 
-learning_rate = 1.0
-settings.sim_dt = 1e-5 # smaller dt is less likely to crash (Nans)
-
+learning_rate = 0.5
+settings.sim_dt = 1e-5  # smaller dt is less likely to crash (Nans)
 
 sim, parameters = create_sim(settings, experiment_name, requires_grad=True, best_params=best_params, device=device, verbose=True)
 
