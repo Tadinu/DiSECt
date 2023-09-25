@@ -8,7 +8,7 @@ import pickle
 import timeit
 import tqdm
 
-def create_sim(settings, experiment_name, verbose=False, requires_grad=False, best_params={}, device='cuda', shared_params=False):
+def create_sim(settings, experiment_name, verbose=False, requires_grad=False, best_params={}, device='cuda', shared_params=False, allow_nans=False):
     parameters = {
         "initial_y": Parameter("initial_y", settings.initial_y, settings.initial_y - 0.005, settings.initial_y + 0.01),
         "cut_spring_ke": Parameter("cut_spring_ke", 200, 100, 8000),
@@ -35,7 +35,7 @@ def create_sim(settings, experiment_name, verbose=False, requires_grad=False, be
             parameters[key].set_value(value)
 
     sim = CuttingSim(settings, experiment_name=experiment_name, adapter=device, requires_grad=requires_grad,
-                    parameters=parameters, verbose=verbose, allow_nans=False)
+                    parameters=parameters, verbose=verbose, allow_nans=allow_nans)
     sim.motion = ConstantLinearVelocityMotion(
         initial_pos=torch.tensor([0.0, settings.initial_y, 0.0], device=device),
         linear_velocity=torch.tensor([0.0, settings.velocity_y, 0.0], device=device))
