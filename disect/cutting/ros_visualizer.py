@@ -9,12 +9,9 @@
 import sys
 import torch
 import time
-import timeit
 import copy
 
 import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from PyQt5 import Qt
 from threading import Thread
@@ -26,6 +23,8 @@ from disect.cutting import Parameter, load_settings, CuttingSim
 import pyvista as pv
 from pyvistaqt import BackgroundPlotter
 
+import matplotlib
+matplotlib.use("Qt5agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -61,8 +60,54 @@ class ROSVisualizer:
                  show_knife_motion_trace=False):
 
         self.show_knife_motion_trace = show_knife_motion_trace
+        self.is_playing = False
 
-        self.render_frequency = render_frequency
+        self.render_frequency = 10
+        self.coarse_sim_step = 0
+
+        self.plotter = BackgroundPlotter(title='DiSECt', auto_update=20.)
+        self.plotter.show()
+        self.skip_steps = skip_steps
+        self.sim_step = 0
+        self.last_rx = None
+        self.anim_menu = self.plotter.main_menu.addMenu('Simulation')
+        self.scaling = scaling
+        self.unit = 1e-2 * self.scaling
+        self.init_camera_view = True
+
+        action = Qt.QAction('Play / Pause', self.plotter.app_window)
+        action.setShortcut(' ')
+        action.triggered.connect(self.toggle_play)
+        self.anim_menu.addAction(action)
+
+        # New button added to toggle the matplotlib window displaying the forces of the knife
+        self.plot_knife_force_history = plot_knife_force_history
+        action = Qt.QAction('Plot', self.plotter.app_window)
+        action.setShortcut('p')
+        action.triggered.connect(self.toggle_plot)
+        self.anim_menu.addAction(action)
+
+        # New button added to toggle the matplotlib window displaying the forces of the knife
+        self.plot_knife_force_history = plot_knife_force_history
+        action = Qt.QAction('Load', self.plotter.app_window)
+        action.setShortcut('l')
+        action.triggered.connect(self.load)
+        self.anim_menu.addAction(action)
+
+        # Connecting the close signal to a callback function
+        self.plotter.app_window.signal_close.connect(self.close)
+
+        self.anim_menu.addSeparator()
+        self.show_static_vertices = show_static_vertices
+        self.show_dependent_particles = show_dependent_particles
+        self.show_cut_spring_sides = show_cut_spring_sides
+        self.show_cut_virtual_triangles = show_cut_virtual_triangles
+        self.show_ground_plane = show_ground_plane
+        self.show_knife_mesh_normals = show_knife_mesh_normals
+        self.show_mesh_wireframe = show_mesh_wireframe
+        self.knife_force_history_limit = knife_force_history_limit
+
+        self.plot_thread = None
 
         ## ROS BEGIN ##
         self.wrench_pub = rospy.Publisher('/disect/wrench', WrenchStamped, queue_size=10)
@@ -83,9 +128,9 @@ class ROSVisualizer:
         self.root_directory = "/root/o2ac-ur/disect/"
 
         self.optimized_params = [
-            "log/optuna_potato_param_inference_dt2e-05_20230905-2345",
-            "log/optuna_tomato_param_inference_dt3e-05_20230905-2052",
-            "log/optuna_cucumber_param_inference_dt2e-05_20230905-1824",
+            # "log/best_results/cucumber",
+            "log/best_results/potato",
+            # "log/best_results/tomato",
         ]
 
         self.ros_frequency = 500
@@ -98,53 +143,20 @@ class ROSVisualizer:
         self.transform_to_robot_base = conversions.from_pose_to_list(disect_to_robot_base.pose)
         ## ROS END ##
 
-        self.coarse_sim_step = 0
-
-        self.plotter = BackgroundPlotter(title='DiSECt', auto_update=20.)
-        self.plotter.show()
-        self.skip_steps = skip_steps
-        self.sim_step = 0
-        self.last_rx = None
-        self.anim_menu = self.plotter.main_menu.addMenu('Simulation')
-        self.scaling = scaling
-        self.unit = 1e-2 * self.scaling
-
-        # New button added to toggle the matplotlib window displaying the forces of the knife
-        self.plot_knife_force_history = plot_knife_force_history
-        action = Qt.QAction('Plot', self.plotter.app_window)
-        action.setShortcut('p')
-        action.triggered.connect(self.toggle_plot)
-        self.anim_menu.addAction(action)
-
-        # Connecting the close signal to a callback function
-        self.plotter.app_window.signal_close.connect(self.close)
-
-        self.anim_menu.addSeparator()
-        self.show_static_vertices = show_static_vertices
-        self.show_dependent_particles = show_dependent_particles
-        self.show_cut_spring_sides = show_cut_spring_sides
-        self.show_cut_virtual_triangles = show_cut_virtual_triangles
-        self.show_ground_plane = show_ground_plane
-        self.show_knife_mesh_normals = show_knife_mesh_normals
-        self.show_mesh_wireframe = show_mesh_wireframe
-        self.knife_force_history_limit = knife_force_history_limit
-
-        self.plot_thread = None
 
     def load(self, req=None):
         opt_folder = np.random.choice(self.optimized_params)
         settings = load_settings(f"{self.root_directory}/{opt_folder}/settings.json")
-        settings.sim_dt = 4e-5
+        settings.sim_dt = 1e-5
         settings.sim_substeps = 500
-        settings.initial_y = 0.1  # center of knife + actual desired height
         self.sim = CuttingSim(settings, experiment_name="dual_sim", parameters=self.parameters, adapter='cuda',
                               requires_grad=False, root_directory=self.root_directory)
         self.sim.cut()
 
         # Load optimized/pretrained parameters
-        pretrained_params = f"{self.root_directory}/{opt_folder}/best_optuna_optimized_tensors.pkl"
+        # pretrained_params = f"{self.root_directory}/{opt_folder}/best_optuna_optimized_tensors.pkl"
+        pretrained_params = f"{self.root_directory}/{opt_folder}/best_adam_optimized_tensors.pt"
         self.sim.load_optimized_parameters(pretrained_params, verbose=True)
-
         self.sim.init_parameters()
         self.sim.state = self.sim.model.state()
         self.sim.assign_parameters()
@@ -173,8 +185,8 @@ class ROSVisualizer:
             self.sim.simulation_step()
 
         if hasattr(self.sim.state, 'knife_f'):
-            knife_f = torch.sum(self.sim.state.knife_f, dim=0).detach().cpu().numpy()
-            knife_ft = np.concatenate((knife_f, np.zeros(3)))
+            knife_f = torch.sum(torch.norm(self.sim.state.knife_f, dim=1)).item()
+            knife_ft = np.concatenate(([0.,knife_f, 0.], np.zeros(3)))
             self.hist_knife_force.append(np.linalg.norm(knife_f))
             self.hist_time.append(self.sim.sim_time)
             gz_knife_ft = spalg.convert_wrench(knife_ft, self.transform_to_robot_base)
@@ -186,8 +198,9 @@ class ROSVisualizer:
         return EmptyResponse()
 
     def publish_wrench(self, ft):
-        print("FT", np.round(ft[:3],2))
+        # print("FT", np.round(ft[:3],2))
         msg = WrenchStamped()
+        msg.header.stamp = rospy.get_rostime()
         msg.wrench = conversions.to_wrench(ft)
         self.wrench_pub.publish(msg)
 
@@ -424,9 +437,11 @@ class ROSVisualizer:
         self.start_model = copy.copy(self.sim.model)
         self.sim.assign_parameters()
 
-        self.plotter.set_viewup([0., 1., 0.])
-        self.plotter.set_focus([0., 0., 0.])
-        self.plotter.set_position([0., .05, 0.2], True)
+        if self.init_camera_view:
+            self.plotter.set_viewup([0., 1., 0.])
+            self.plotter.set_focus([0., 0., 0.])
+            self.plotter.set_position([0., .05, 0.2], True)
+            self.init_camera_view = False
 
         if self.plot_thread is None:
             max_steps = int(self.knife_force_history_limit / self.sim.sim_dt)
@@ -454,23 +469,35 @@ class ROSVisualizer:
                             hist_knife_force = hist_knife_force[-max_steps:]
                             hist_time = self.hist_time[-max_steps:]
                         if not plt.fignum_exists(1):  # If the figure is closed, we open it again
-                            fig, ax = plt.subplots()
+                            fig, ax = plt.subplots(figsize=(8,4))
                             fig.canvas.mpl_connect('close_event', on_close_force)
                             fig.canvas.set_window_title('Knife Force [N]')
+                            fig.tight_layout()
                         ax.clear()
                         ax.grid()
+                        ax.set_title("Contact Force [N]")
                         ax.plot(hist_time, hist_knife_force, color="C0")
-                        plt.pause(0.0001)
+                        # plt.pause(0.0001)
+                        fig.canvas.draw_idle()
+                        fig.canvas.start_event_loop(0.001)
                     else:  # We close the figure if the option is toggled at false
                         indexes_of_fig = plt.get_fignums()
                         if len(indexes_of_fig) > 0:
                             for i in indexes_of_fig:
                                 plt.close(i)
-                    time.sleep(1./self.render_frequency)
+                    time.sleep(0.01)
             self.plot_thread = Thread(target=plot_force)
             self.plot_thread.start()
 
         rospy.loginfo("Visualizer has been loaded")
+
+    def toggle_play(self):
+        self.is_playing = not self.is_playing
+        print("Play?", self.is_playing)
+        if self.sim is None:
+            return
+        if self.is_playing:
+            self.start()
 
     # Callback funtion called when pressing the plot knife force button (p)
     def toggle_plot(self):
