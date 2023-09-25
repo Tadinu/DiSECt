@@ -5,12 +5,13 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
+import pathlib
 import numpy as np
 import sys
 
 import wildmeshing as wm
 
-from .utils import load_mesh, MeshTopology, convert_viz_indices
+from disect.cutting.utils import load_mesh, MeshTopology, convert_viz_indices
 
 import meshio
 from PyQt5 import Qt
@@ -33,7 +34,7 @@ def tetrahedralize(filename, y_is_up=False, scaling=0.0005, stop_quality=10, max
     tetra.set_mesh(vertices, np.array(indices).reshape(-1, 3))
 
     tetra.tetrahedralize()
-    VT, TT = tetra.get_tet_mesh()
+    VT, TT, _ = tetra.get_tet_mesh()
 
     print(
         f"Tetrahedralized cross section to {TT.shape[0]} elements and {VT.shape[0]} vertices.")
@@ -60,7 +61,8 @@ def tetrahedralize(filename, y_is_up=False, scaling=0.0005, stop_quality=10, max
                          j_size=100, i_resolution=10, j_resolution=10), color='white')
 
     mesh = meshio.Mesh(VT, [("quad", TT)])
-    target_filename = filename.replace('.obj', '.msh')
+    extension = pathlib.Path(filename).suffix
+    target_filename = filename.replace(extension, '.msh')
     meshio.write(target_filename, mesh)
     print(f"Saved tetrahedralized mesh to {target_filename}.")
 
@@ -71,7 +73,7 @@ def tetrahedralize(filename, y_is_up=False, scaling=0.0005, stop_quality=10, max
 
 
 if __name__ == "__main__":
-    filename = "assets/usc_apple3.obj"
+    filename = "/root/o2ac-ur/disect/dataset/assets/potato.obj"
     y_is_up = False
-    scaling = 0.0005
+    scaling = 1.0
     tetrahedralize(filename, y_is_up, scaling)
