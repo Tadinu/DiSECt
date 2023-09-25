@@ -22,15 +22,27 @@ By default, the simulation back-end uses the built-in PyTorch cpp-extensions mec
 
 ## Installation
 
+
+
 ### Dataset
 To set up our [dataset](https://drive.google.com/file/d/1wucF6uyerdcrRPxZ88hfWOLv3pfCisNu/view?usp=sharing) of meshes, simulated knife forces and nodal motion fields we recorded in the ANSYS LS-DYNA simulator, download [this zip file (96 MB)](https://drive.google.com/file/d/1wucF6uyerdcrRPxZ88hfWOLv3pfCisNu/view?usp=sharing) and extract it in the project folder, such that the folder `dataset` is at the top level.
 
 We provide a `README.md` file with more details on the contents of this dataset in the `dataset` folder. The dataset is released under the [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
+### OSX Dataset
+The dataset use in the SliceIt framework can ge obtained [here](https://drive.google.com/file/d/1ruY8mG2BGgmba0IIUg_1uUA5wtMf7tql/view?usp=sharing).
+The dataset is released under the [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
+
 ### Python dependencies
 Next, set up the Python dependencies listed in [`requirements.txt`](requirements.txt) via
 ```sh
 pip install -r requirements.txt
+```
+
+### Install as Python package
+Required for dual environment configuration
+``` sh
+pip install -e .
 ```
 
 ### Mesh processing library
@@ -53,6 +65,15 @@ The following demos are provided and can be executed via `python examples/<examp
 | `parameter_inference`    | Optimizes simulation parameters to match a knife force profile from one of the [measurements in our dataset](./dataset/forces) |
 
 
+## OSX Examples
+
+| Example | Description |
+| :------------ | :------------- |
+| `parameter_inference_optuna` | Two-step parameter optimization given a knife force profile from the osx_dataset |
+| `simulate_with_optimized_parameters` | Simulate with some given calibrated parameters file  |
+| `visualize_calibration_run`    | Similar to above but using the folder with the results |
+
+
 ## Citation
 
 ```
@@ -72,6 +93,8 @@ The following demos are provided and can be executed via `python examples/<examp
 We do not accept outside code contributions in the form of pull requests, but you are welcome to open issues which we may address in future updates to this work.
 
 ## License
+
+This repository originated as a fork from the original [DiSECt repository](https://github.com/NVlabs/DiSECt). 
 
 Copyright &copy; 2021, NVIDIA Corporation. All rights reserved.
 
