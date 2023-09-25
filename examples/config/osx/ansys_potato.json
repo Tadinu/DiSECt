@@ -16,7 +16,7 @@
             "filename": "dataset/meshes/sphere.rst"
         },
         "meshio": {
-            "filename": "dataset/assets/potato.msh"
+            "filename": "osx_dataset/assets/potato.msh"
         },
         "grid": {
             "dim_x": 21,

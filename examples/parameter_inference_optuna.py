@@ -45,7 +45,9 @@ from tensorboardX import SummaryWriter
 
 from disect.cutting import load_settings, save_settings, optuna_trainer, adam_trainer, create_sim
 
-settings = load_settings("examples/config/cooking/ansys_cucumber.json")
+settings = load_settings("examples/config/osx/ansys_cucumber.json")
+# settings = load_settings("examples/config/osx/ansys_potato.json")
+# settings = load_settings("examples/config/osx/ansys_tomato.json")
 
 # settings.sim_duration = 1.3
 settings.sim_dt = 4e-5
@@ -60,7 +62,8 @@ best_params = None
 
 optuna_opt = True
 
-# optuna_results = '/root/o2ac-ur/disect/log/best_results/20230908-131328_optuna_cucumber_param_inference_dt3e-05/best_optuna_optimized_tensors.pkl'
+### Load previous results
+# optuna_results = 'PATH to .pt or .pkl file'
 # best_params = pickle.load(open(optuna_results, 'rb'))
 # print("best params", best_params)
 
@@ -68,6 +71,7 @@ save_settings(settings, f"log/{experiment_name}/settings.json")
 
 os.makedirs(f"log/{experiment_name}/plots")
 os.makedirs(f"log/{experiment_name}/params")
+
 ###########################
 ### Optuna Optimization ###
 ###########################

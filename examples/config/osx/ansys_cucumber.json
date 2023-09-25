@@ -16,7 +16,7 @@
             "filename": "dataset/meshes/cylinder.rst"
         },
         "meshio": {
-            "filename": "dataset/assets/cucumber_cut.msh"
+            "filename": "osx_dataset/assets/cucumber_cut.msh"
         },
         "grid": {
             "dim_x": 21,

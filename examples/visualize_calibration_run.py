@@ -47,10 +47,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from disect.cutting import load_settings, create_sim
 
-calibration_files = '/root/o2ac-ur/disect/log/best_results/potato'
-calibration_files = '/root/o2ac-ur/disect/log/best_results/tomato'
-calibration_files = '/root/o2ac-ur/disect/log/best_results/cucumber'
-
+calibration_files = 'log/calibration_folder'
 
 settings = load_settings(f"{calibration_files}/settings.json")
 settings.sim_dt = 2e-5
@@ -62,9 +59,8 @@ device = "cuda"
 sim, parameters = create_sim(settings, experiment_name, requires_grad=False, device=device, verbose=True, allow_nans=True)
 
 # Load optimized/pretrained parameters
-pretrained_params = f'{calibration_files}/params/adam_optimized_tensors_10.pt'
 # pretrained_params = f'{calibration_files}/best_optuna_optimized_tensors.pkl'
-# pretrained_params = f'{calibration_files}/best_adam_optimized_tensors.pt'
+pretrained_params = f'{calibration_files}/best_adam_optimized_tensors.pt'
 sim.load_optimized_parameters(pretrained_params, verbose=True, update_initial_y=True)
 
 sim.init_parameters()
@@ -80,4 +76,3 @@ sim.init_parameters()
 # sim.visualize_cut(cut_separation=0.01)
 
 sim.visualize(plot_knife_force_history=False, auto_start=False, render_frequency=10)
-# sim.ros_visualizer()

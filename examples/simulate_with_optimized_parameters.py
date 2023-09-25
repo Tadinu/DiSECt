@@ -29,9 +29,9 @@ parameters = {
     "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
 }
 
-# settings = load_settings("examples/config/cooking/ansys_cucumber.json")
-# settings = load_settings("examples/config/cooking/ansys_potato.json")
-settings = load_settings("examples/config/cooking/ansys_tomato.json")
+settings = load_settings("examples/config/osx/ansys_cucumber.json")
+# settings = load_settings("examples/config/osx/ansys_potato.json")
+# settings = load_settings("examples/config/osx/ansys_tomato.json")
 
 settings.sim_dt = 1e-5
 settings.sim_substeps = 500

@@ -518,23 +518,6 @@ datasets = {
         'cut_spring_ke',
         'cut_spring_softness',
     ], config_file="config/default_cut_settings.json", surface_equal_interior=True),
-    'cucumber_real':
-    Dataset(params=[
-        'sdf_ke',
-        'surface_sdf_ke',
-        'sdf_kd',
-        'surface_sdf_kd',
-        'sdf_kf',
-        'surface_sdf_kf',
-        'sdf_mu',
-        'surface_sdf_mu',
-        'cut_spring_ke',
-        'surface_cut_spring_ke',
-        'cut_spring_softness',
-        'surface_cut_spring_softness',
-    ],
-        config_file="config/cooking/ansys_cucumber.json",
-        surface_equal_interior=False),
 }
 
 
