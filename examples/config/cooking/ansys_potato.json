@@ -10,13 +10,13 @@
     "ground_kf": 1000.0,
     "ground_mu": 0.2,
     "ground_radius": 0.001,
-    "generator": "ansys",
+    "generator": "meshio",
     "generators": {
         "ansys": {
-            "filename": "dataset/meshes/prism.rst"
+            "filename": "dataset/meshes/sphere.rst"
         },
         "meshio": {
-            "filename": "cutting/assets/potato.msh"
+            "filename": "dataset/assets/potato.msh"
         },
         "grid": {
             "dim_x": 21,
@@ -27,8 +27,8 @@
             "cell_z": 0.006
         }
     },
-    "mu": 68965.51724137932,
-    "lambda": 620689.6551724139,
+    "mu": 689655.1724137932,
+    "lambda": 6206896.55172414,
     "young": 2000000.0,
     "poisson": 0.45,
     "density": 1101.0,
@@ -47,7 +47,7 @@
             1.0,
             0.0
         ],
-        "scale": 0.78
+        "scale": 1.0
     },
     "cut_spring_ke": 200.0,
     "cut_spring_kd": 0.0,
@@ -76,7 +76,7 @@
                 ],
                 "max": [
                     100.0,
-                    0.002,
+                    0.01,
                     100.0
                 ]
             }

@@ -10,13 +10,13 @@
     "ground_kf": 1000.0,
     "ground_mu": 0.2,
     "ground_radius": 0.001,
-    "generator": "ansys",
+    "generator": "meshio",
     "generators": {
         "ansys": {
             "filename": "dataset/meshes/cylinder.rst"
         },
         "meshio": {
-            "filename": "dataset/assets/cucumber.msh"
+            "filename": "dataset/assets/cucumber_cut.msh"
         },
         "grid": {
             "dim_x": 21,
@@ -38,7 +38,7 @@
     "geometry": {
         "position": [
             0.0,
-            0.0008,
+            0.0001,
             0.0
         ],
         "rotation": [
@@ -47,7 +47,7 @@
             1.0,
             0.0
         ],
-        "scale": 0.53
+        "scale": 1.0
     },
     "cut_spring_ke": 200.0,
     "cut_spring_kd": 0.0,
@@ -76,7 +76,7 @@
                 ],
                 "max": [
                     100.0,
-                    0.002,
+                    0.1,
                     100.0
                 ]
             }
