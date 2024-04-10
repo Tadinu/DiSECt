@@ -33,6 +33,8 @@ We provide a `README.md` file with more details on the contents of this dataset 
 The dataset use in the SliceIt framework can ge obtained [here](https://drive.google.com/file/d/1ruY8mG2BGgmba0IIUg_1uUA5wtMf7tql/view?usp=sharing).
 The dataset is released under the [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
+Download it and put in as osx_dataset in the root directory of `disect`
+
 ### Python dependencies
 Next, set up the Python dependencies listed in [`requirements.txt`](requirements.txt) via
 ```sh
