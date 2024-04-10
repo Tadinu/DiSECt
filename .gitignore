@@ -31,3 +31,4 @@ log/
 dataset/
 *.zip
 osx_dataset/
+meshing/build/

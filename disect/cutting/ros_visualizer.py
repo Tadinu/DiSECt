@@ -88,6 +88,7 @@ class ROSVisualizer:
 
         self.show_knife_motion_trace = show_knife_motion_trace
         self.is_playing = False
+        self.sim = None
 
         self.render_frequency = 10
         self.coarse_sim_step = 0
