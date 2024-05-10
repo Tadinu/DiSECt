@@ -21,7 +21,7 @@ Quat = List[float]
 Mat33 = List[float]
 Transform = Tuple[Vec3, Quat]
 
-from disect.dflex.util import *
+from dflex.util import *
 
 # shape geometry types
 GEO_SPHERE = 0
@@ -514,7 +514,7 @@ class ModelBuilder:
 
     Example:
 
-        >>> import disect.dflex as df
+        >>> import dflex as df
         >>>
         >>> builder = df.ModelBuilder()
         >>>
@@ -2068,7 +2068,7 @@ class ModelBuilder:
                     use_cpp=True):
 
         self.original_tri_indices = self.tri_indices
-        import disect.dflex as df
+        import dflex as df
 
         if use_cpp:
             from meshcutter import MeshCutter
@@ -2220,7 +2220,7 @@ class ModelBuilder:
         #---------------------
         # collision geometry
 
-        m.shape_transform = torch.tensor(transform_flatten_list(self.shape_transform), dtype=torch.float32, device=adapter)
+        m.shape_transform = torch.tensor(np.array(transform_flatten_list(self.shape_transform)), dtype=torch.float32, device=adapter)
         m.shape_body = torch.tensor(self.shape_body, dtype=torch.int32, device=adapter)
         m.shape_geo_type = torch.tensor(self.shape_geo_type, dtype=torch.int32, device=adapter)
         m.shape_geo_src = self.shape_geo_src
@@ -2367,8 +2367,8 @@ class ModelBuilder:
         # model
         m.joint_type = torch.tensor(self.joint_type, dtype=torch.int32, device=adapter)
         m.joint_parent = torch.tensor(self.joint_parent, dtype=torch.int32, device=adapter)
-        m.joint_X_pj = torch.tensor(transform_flatten_list(self.joint_X_pj), dtype=torch.float32, device=adapter)
-        m.joint_X_cm = torch.tensor(transform_flatten_list(body_X_cm), dtype=torch.float32, device=adapter)
+        m.joint_X_pj = torch.tensor(np.array(transform_flatten_list(self.joint_X_pj)), dtype=torch.float32, device=adapter)
+        m.joint_X_cm = torch.tensor(np.array(transform_flatten_list(body_X_cm)), dtype=torch.float32, device=adapter)
         m.joint_axis = torch.tensor(self.joint_axis, dtype=torch.float32, device=adapter)
         m.joint_q_start = torch.tensor(self.joint_q_start, dtype=torch.int32, device=adapter) 
         m.joint_qd_start = torch.tensor(self.joint_qd_start, dtype=torch.int32, device=adapter)

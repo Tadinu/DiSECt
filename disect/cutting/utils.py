@@ -13,9 +13,11 @@ from sty import fg, rs
 
 
 def load_ansys_mesh(filename):
-    import pyansys
+    # https://reader.docs.pyansys.com
+    from ansys.mapdl import reader as pymapdl_reader
+    #import pyansys
     # archive = pyansys.Archive(f"assets/{filename}.cdb", force_linear=True,)
-    archive = pyansys.read_binary(filename)
+    archive = pymapdl_reader.read_binary(filename)
     print(archive)
     mesh = archive.mesh
     print(mesh)

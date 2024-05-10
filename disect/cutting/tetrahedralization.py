@@ -73,7 +73,7 @@ def tetrahedralize(filename, y_is_up=False, scaling=0.0005, stop_quality=10, max
 
 
 if __name__ == "__main__":
-    filename = "/root/o2ac-ur/disect/osx_dataset/assets/tomato.obj"
+    filename = "/home/tad/2_ISAAC/DISECT/DiSECt/osx_dataset/assets/tomato.obj"
     y_is_up = False
     scaling = 1.0
     tetrahedralize(filename, y_is_up, scaling)

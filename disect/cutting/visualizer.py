@@ -466,7 +466,7 @@ class Visualizer:
         os._exit(0)
 
     def update_view(self):
-        import disect.dflex as df
+        import dflex as df
         ps = self.sim.state.particle_q.detach().cpu().numpy() * self.scaling
         if self.surf is not None:
             self.surf.points = ps
@@ -535,8 +535,8 @@ class Visualizer:
 
     def start(self):
         def simulate():
-            import disect.dflex as df
-            df.config.no_grad = True
+            import dflex.config as df_config
+            df_config.no_grad = True
             with torch.no_grad():
                 self.coarse_sim_step = 0
                 while self.is_playing:

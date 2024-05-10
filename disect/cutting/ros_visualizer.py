@@ -153,7 +153,7 @@ class ROSVisualizer:
             "sdf_mu": Parameter("sdf_mu", 0.5, 0.45, 1.0),
         }
 
-        self.root_directory = "/root/o2ac-ur/disect/"
+        self.root_directory = "/home/tad/2_ISAAC/DISECT/DiSECt/"
 
         self.optimized_params = [
             # "log/best_results/cucumber",
@@ -538,7 +538,7 @@ class ROSVisualizer:
         os._exit(0)
 
     def update_view(self):
-        import disect.dflex as df
+        import dflex as df
         ps = self.sim.state.particle_q.detach().cpu().numpy() * self.scaling
         if self.surf is not None:
             self.surf.points = ps
@@ -621,7 +621,7 @@ class ROSVisualizer:
 
     def start(self):
         def simulate():
-            import disect.dflex as df
+            import dflex as df
             df.config.no_grad = True
             with torch.no_grad():
                 self.coarse_sim_step = 0

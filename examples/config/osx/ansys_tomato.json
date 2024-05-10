@@ -128,7 +128,7 @@
         "mode": "fem"
     },
     "veggie": "tomato",
-    "groundtruth": "/root/o2ac-ur/disect/osx_dataset/calibrated/tomato_01.npy",
+    "groundtruth": "/home/tad/2_ISAAC/DISECT/DiSECt/osx_dataset/calibrated/tomato_01.npy",
     "groundtruth_dt": 0.002,
     "veggie_height": 0.048
 }

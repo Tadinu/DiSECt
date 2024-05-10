@@ -14,12 +14,12 @@ import math
 import torch
 import numpy as np
 
-import disect.dflex.util
-import disect.dflex.adjoint as df
-import disect.dflex.config
+import dflex.util
+import dflex.adjoint as df
+import dflex.config
 
-from disect.dflex.model import *
-import disect.dflex as dflex
+from dflex.model import *
+import dflex
 
 import time
 

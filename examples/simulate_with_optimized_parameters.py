@@ -53,7 +53,7 @@ sim = CuttingSim(settings, experiment_name=experiment_name,
 sim.cut()
 
 # Load ground truth for plotting
-# sim.load_groundtruth('osx_dataset/calibrated/cucumber_3_05.npy', groundtruth_dt=0.002)
+# sim.load_groundtruth('osx_dataset/forces/cucumber_3_05.npy', groundtruth_dt=0.002)
 # sim.load_groundtruth('osx_dataset/calibrated/tomato_01.npy', groundtruth_dt=0.002)
 
 # Load optimized/pretrained parameters

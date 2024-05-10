@@ -10,7 +10,8 @@ import json
 import os
 from munch import *
 from copy import deepcopy
-from collections import MutableMapping, namedtuple, defaultdict
+from collections.abc import MutableMapping
+from collections import namedtuple, defaultdict
 import numpy as np
 import torch
 from tqdm import tqdm

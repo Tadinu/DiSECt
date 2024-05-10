@@ -184,7 +184,7 @@ class ForwardFacingMotion(FreeFloatingKnifeMotion):
         return self.__last_tangent
 
     def angular_position(self, t, dt):
-        import disect.dflex as df
+        import dflex as df
         # TODO implement in pytorch
         up = np.array((1., 0., 0.))
         tangent = self.linear_velocity(t, dt).detach().cpu().numpy()
@@ -200,7 +200,7 @@ class ForwardFacingMotion(FreeFloatingKnifeMotion):
         return torch.tensor(quat, device=self.device)
 
     def angular_velocity(self, t: torch.Tensor, dt: float):
-        import disect.dflex as df
+        import dflex as df
         # TODO implement in pytorch
         t1 = t - dt / 2
         lin_vel_1 = self.linear_velocity(t1, dt).detach().cpu().numpy()

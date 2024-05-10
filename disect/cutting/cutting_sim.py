@@ -112,9 +112,9 @@ class CuttingSim:
         self.knife_faces = None
         self.knife_vertices = None
 
-        # here is the first time we import disect.dflex, which is where the kernels may get rebuilt if needed
-        import disect.dflex as df
-        from disect.dflex.sim import ModelBuilder
+        # here is the first time we import dflex, which is where the kernels may get rebuilt if needed
+        import dflex as df
+        from dflex.model import ModelBuilder
         self.builder = ModelBuilder()
 
         self.show_cutting_surface = show_cutting_surface
@@ -209,18 +209,18 @@ class CuttingSim:
         """
         Disable gradient computation globally for the entire simulation back-end.
         """
-        import disect.dflex as df
-        df.config.no_grad = True
+        import dflex.config as df_config
+        df_config.no_grad = True
     
     def enable_gradiants(self):
-        import disect.dflex as df
-        df.config.no_grad = False
+        import dflex.config as df_config
+        df_config.no_grad = False
 
     def setup_free_floating_knife(self, knife: Knife = None):
         """
         Set up a free-floating knife.
         """
-        import disect.dflex as df
+        import dflex as df
         if knife is not None:
             self.knife = knife
         # add rigid body for the knife
@@ -271,7 +271,7 @@ class CuttingSim:
         In case the collision mesh defined in the URDF is not adequate, a custom triangular knife mesh can be provided via the triangular face indices and mesh vertices.
         Note that this feature is not fully tested and may not work properly.
         """
-        import disect.dflex as df
+        import dflex as df
         last_link_id = max(self.builder.shape_body) if len(
             self.builder.shape_body) > 0 else 0
         load_urdf(self.builder, urdf_filename, df.transform(
@@ -311,7 +311,7 @@ class CuttingSim:
         Optionally, the time domain over which the knife motion is traced can be extended by the `time_extend_factor` that prepends and appends time relative to the overall `sim_duration`.
         Returns the list of vertices, the list of face indices, and the triangle point tuples of the cutting surface.
         """
-        import disect.dflex as df
+        import dflex as df
         if knife_motion is None:
             knife_motion = self.motion
         if self.knife_faces is None or self.knife_vertices is None:
@@ -459,7 +459,7 @@ class CuttingSim:
         """
         Perform the topological cutting operation where the mesh is processed given the currently selected knife and its motion.
         """
-        import disect.dflex as df
+        import dflex as df
 
         if mode is not None:
             self.settings.cutting.mode = mode
@@ -630,7 +630,7 @@ class CuttingSim:
         """
         Perform a single simulation step where the dynamics model is evaluated and the state is updated from the integrator.
         """
-        import disect.dflex as df
+        import dflex as df
 
         # torch_time = torch.tensor(self.sim_time, device=self.adapter)
         # self.motion.update_state(self.state, torch_time, self.sim_dt)
@@ -687,7 +687,7 @@ class CuttingSim:
         if render:
             # set up Usd renderer
             from pxr import Usd
-            from disect.dflex.render import UsdRenderer
+            from dflex.render import UsdRenderer
             stage_name = f"outputs/{self.experiment_name}.usd"
             stage = Usd.Stage.CreateNew(stage_name)
             renderer = UsdRenderer(self.model, stage)
@@ -914,7 +914,7 @@ class CuttingSim:
         from scipy.spatial import ConvexHull
         from matplotlib.patches import Polygon
         from matplotlib.collections import PatchCollection
-        import disect.dflex as df
+        import dflex as df
 
         def plot_knife_outline(pos, rot, ax0, ax1, alpha=0.8):
             knife_vertices, _ = self.knife.create_mesh()
@@ -1121,16 +1121,6 @@ class CuttingSim:
         from PyQt5 import Qt
         app = Qt.QApplication(sys.argv)
         _ = Visualizer(self, skip_steps=skip_steps, **kwargs)
-        sys.exit(app.exec_())
-
-    def ros_visualizer(self):
-        """
-        Creates an interactive visualizer and runs the simulation.
-        """
-        from disect.cutting import ROSVisualizer
-        from PyQt5 import Qt
-        app = Qt.QApplication(sys.argv)
-        _ = ROSVisualizer(self, skip_steps=10)
         sys.exit(app.exec_())
 
     def save_optimized_parameters(self, filename):
